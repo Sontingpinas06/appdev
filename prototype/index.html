@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCP Uniform Guide - Body Scan Sizing</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>BCP Uniform Guide</span>
+            </div>
+            
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            
+            <div class="nav-menu" id="navMenu">
+                <div class="mobile-menu-header">
+                    <div class="nav-brand">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>BCP Uniform Guide</span>
+                    </div>
+                    <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <a href="#home" class="nav-link active" onclick="showSection('home'); closeMobileMenu();">
+                    <i class="fas fa-home"></i> <span>Home</span>
+                </a>
+                <a href="#sizing" class="nav-link" onclick="showSection('sizing'); closeMobileMenu();">
+                    <i class="fas fa-ruler"></i> <span>Body Scan</span>
+                </a>
+                <a href="#catalog" class="nav-link" onclick="showSection('catalog'); closeMobileMenu();">
+                    <i class="fas fa-tshirt"></i> <span>Catalog</span>
+                </a>
+                
+                <div class="mobile-menu-footer">
+                    <button class="btn btn-secondary btn-small" onclick="openThemeSelector(); closeMobileMenu();" title="Change Theme">
+                        <i class="fas fa-palette"></i> <span>Change Theme</span>
+                    </button>
+                    <a href="admin.html" class="btn btn-secondary btn-small" title="Admin Panel">
+                        <i class="fas fa-shield-halved"></i> <span>Admin Panel</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-actions desktop-only">
+                <!-- Auth Buttons (when logged out) -->
+                <div id="authButtons" class="auth-buttons">
+                    <a href="login.html" class="btn btn-primary btn-small">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </div>
+                
+                <!-- User Profile (when logged in) -->
+                <div id="userProfile" class="user-profile" style="display: none;">
+                    <button class="profile-button" onclick="toggleProfileDropdown()">
+                        <div class="profile-avatar" id="userInitials">U</div>
+                        <span id="userName">User</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="dropdown-header">
+                            <div class="dropdown-avatar" id="userInitials2">U</div>
+                            <div>
+                                <div class="dropdown-name" id="userName2">User</div>
+                                <div class="dropdown-email" id="userEmail">user@email.com</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item" onclick="showProfileModal()">
+                            <i class="fas fa-user"></i> My Profile
+                        </button>
+                        <button class="dropdown-item" onclick="showSection('sizing')">
+                            <i class="fas fa-ruler"></i> My Measurements
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+                
+                <button class="btn btn-secondary btn-small" onclick="openThemeSelector()" title="Change Theme">
+                    <i class="fas fa-palette"></i>
+                </button>
+                <a href="admin.html" class="btn btn-secondary btn-small" title="Admin Panel">
+                    <i class="fas fa-shield-halved"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu()"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="container">
+                <div class="hero">
+                    <div class="hero-content">
+                        <h1>Welcome to BCP Uniform Guide</h1>
+                        <p class="hero-subtitle">AI-Powered Body Scan Sizing for Perfect Fit</p>
+                        <p class="hero-description">
+                            Get precise size recommendations using our advanced AI technology. 
+                            Simply enter your measurements or upload a photo for instant sizing suggestions.
+                        </p>
+                        <div class="hero-buttons">
+                            <button class="btn btn-primary" onclick="showSection('sizing')">
+                                <i class="fas fa-camera"></i> Start Body Scan
+                            </button>
+                            <button class="btn btn-secondary" onclick="showSection('catalog')">
+                                <i class="fas fa-tshirt"></i> Browse Catalog
+                            </button>
+                        </div>
+                    </div>
+                    <div class="hero-image">
+                        <div class="feature-cards">
+                            <div class="feature-card">
+                                <i class="fas fa-robot"></i>
+                                <h3>AI Sizing</h3>
+                                <p>Intelligent size recommendations</p>
+                            </div>
+                            <div class="feature-card">
+                                <i class="fas fa-box"></i>
+                                <h3>Live Stock</h3>
+                                <p>Real-time availability</p>
+                            </div>
+                            <div class="feature-card">
+                                <i class="fas fa-tag"></i>
+                                <h3>Transparent Pricing</h3>
+                                <p>Clear pricing details</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-tshirt"></i>
+                        <h3>11</h3>
+                        <p>Uniform Items</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-boxes"></i>
+                        <h3>500+</h3>
+                        <p>Items in Stock</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <h3>1000+</h3>
+                        <p>Students Served</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-star"></i>
+                        <h3>98%</h3>
+                        <p>Accuracy Rate</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Body Scan Sizing Section -->
+        <section id="sizing" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2><i class="fas fa-ruler-combined"></i> AI Body Scan Sizing</h2>
+                    <p>Get your perfect size recommendation in seconds</p>
+                </div>
+
+                <div class="sizing-container">
+                    <!-- Method Selection -->
+                    <div class="method-selector">
+                        <button class="method-btn active" onclick="selectMethod('manual')" id="manual-btn">
+                            <i class="fas fa-keyboard"></i>
+                            <span>Manual Entry</span>
+                        </button>
+                        <button class="method-btn" onclick="selectMethod('photo')" id="photo-btn">
+                            <i class="fas fa-camera"></i>
+                            <span>Photo Scan</span>
+                        </button>
+                    </div>
+
+                    <!-- Manual Entry Form -->
+                    <div id="manual-form" class="measurement-form active">
+                        <div class="form-card">
+                            <h3>Enter Your Measurements</h3>
+                            <form id="measurementForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="studentName">
+                                            <i class="fas fa-user"></i> Student Name
+                                        </label>
+                                        <input type="text" id="studentName" required placeholder="Enter full name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="studentId">
+                                            <i class="fas fa-id-card"></i> Student ID (Optional)
+                                        </label>
+                                        <input type="text" id="studentId" placeholder="Enter student ID">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="gender">
+                                            <i class="fas fa-venus-mars"></i> Gender
+                                        </label>
+                                        <select id="gender" required>
+                                            <option value="">Select gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="height">
+                                            <i class="fas fa-arrows-alt-v"></i> Height (cm)
+                                        </label>
+                                        <input type="number" id="height" required min="100" max="250" placeholder="e.g., 165">
+                                        <small>Enter your height in centimeters</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="weight">
+                                            <i class="fas fa-weight"></i> Weight (kg)
+                                        </label>
+                                        <input type="number" id="weight" required min="20" max="200" placeholder="e.g., 55">
+                                        <small>Enter your weight in kilograms</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="chest">
+                                            <i class="fas fa-ruler-horizontal"></i> Chest (cm) - Optional
+                                        </label>
+                                        <input type="number" id="chest" min="50" max="150" placeholder="e.g., 85">
+                                        <small>Measure around the fullest part of chest</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="waist">
+                                            <i class="fas fa-ruler-horizontal"></i> Waist (cm) - Optional
+                                        </label>
+                                        <input type="number" id="waist" min="40" max="150" placeholder="e.g., 70">
+                                        <small>Measure around natural waistline</small>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-large">
+                                    <i class="fas fa-magic"></i> Get Size Recommendations
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Photo Scan Form -->
+                    <div id="photo-form" class="measurement-form">
+                        <div class="form-card">
+                            <h3><i class="fas fa-camera"></i> Photo Scan for AI Sizing</h3>
+                            <div class="photo-upload-area">
+                                <div class="upload-zone" id="uploadZone">
+                                    <i class="fas fa-camera"></i>
+                                    <h4>Take a Photo or Upload</h4>
+                                    <p>For best results, stand straight against a plain background</p>
+                                    <input type="file" id="photoInput" accept="image/*" hidden>
+                                    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+                                    <div class="photo-buttons">
+                                        <button type="button" class="btn btn-primary" onclick="openCamera()">
+                                            <i class="fas fa-camera"></i> Take Photo
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('photoInput').click()">
+                                            <i class="fas fa-image"></i> Upload Photo
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Camera View -->
+                                <div id="cameraView" class="camera-view" style="display: none;">
+                                    <video id="cameraStream" autoplay playsinline></video>
+                                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                                    <div class="camera-controls">
+                                        <button type="button" class="btn btn-danger" onclick="closeCamera()">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                        <button type="button" class="btn btn-primary btn-large" onclick="capturePhoto()">
+                                            <i class="fas fa-camera"></i> Capture
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="switchCamera()">
+                                            <i class="fas fa-sync"></i> Switch
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="photoPreview" class="photo-preview" style="display: none;">
+                                    <img id="previewImage" src="" alt="Preview">
+                                    <button type="button" class="btn btn-danger btn-small" onclick="removePhoto()">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+
+                            <form id="photoScanForm" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="photoStudentName">
+                                            <i class="fas fa-user"></i> Student Name
+                                        </label>
+                                        <input type="text" id="photoStudentName" required placeholder="Enter full name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="photoGender">
+                                            <i class="fas fa-venus-mars"></i> Gender
+                                        </label>
+                                        <select id="photoGender" required>
+                                            <option value="">Select gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="ai-processing" id="aiProcessing" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p>AI is analyzing your photo...</p>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-large">
+                                    <i class="fas fa-brain"></i> Analyze with AI
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Results Display -->
+                    <div id="sizing-results" class="sizing-results" style="display: none;">
+                        <div class="results-header">
+                            <h3><i class="fas fa-check-circle"></i> Your Size Recommendations</h3>
+                            <button class="btn btn-secondary btn-small" onclick="resetSizing()">
+                                <i class="fas fa-redo"></i> Start Over
+                            </button>
+                        </div>
+                        <div id="recommendationsGrid" class="recommendations-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Catalog Section -->
+        <section id="catalog" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2><i class="fas fa-tshirt"></i> Uniform Catalog</h2>
+                    <p>Browse our complete uniform collection with live stock and pricing</p>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters">
+                    <div class="filter-group">
+                        <label><i class="fas fa-filter"></i> Filter by:</label>
+                        <select id="genderFilter" onchange="filterCatalog()">
+                            <option value="">All Genders</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Unisex">Unisex</option>
+                        </select>
+                        <select id="categoryFilter" onchange="filterCatalog()">
+                            <option value="">All Categories</option>
+                            <option value="Upper Wear">Upper Wear</option>
+                            <option value="Lower Wear">Lower Wear</option>
+                            <option value="PE Uniform">PE Uniform</option>
+                        </select>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search uniforms..." oninput="filterCatalog()">
+                    </div>
+                </div>
+
+                <!-- Catalog Grid -->
+                <div id="catalogGrid" class="catalog-grid"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Item Details -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content modal-auth">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            
+            <div class="login-header-section">
+                <div class="login-icon">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h2>Student Login</h2>
+                <p>Login to access your profile and measurements</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail"><i class="fas fa-user"></i> Email or Student ID</label>
+                    <input type="text" id="loginEmail" required placeholder="Enter your email or student ID">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword"><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p><i class="fas fa-info-circle"></i> Contact your administrator to get login credentials</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content modal-profile">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            
+            <div class="profile-modal-header">
+                <div class="profile-modal-avatar" id="profileInitials">U</div>
+                <div>
+                    <h2 id="displayName">User Name</h2>
+                    <p id="displayEmail">user@email.com</p>
+                </div>
+            </div>
+            
+            <div id="profilePermissionMessage" class="permission-message" style="display: none;">
+                <i class="fas fa-lock"></i> Profile editing has been disabled by administrator
+            </div>
+            
+            <div class="profile-info-grid">
+                <div class="profile-info-item">
+                    <i class="fas fa-id-card"></i>
+                    <div>
+                        <label>Student ID</label>
+                        <span id="displayStudentId">Not provided</span>
+                    </div>
+                </div>
+                <div class="profile-info-item">
+                    <i class="fas fa-venus-mars"></i>
+                    <div>
+                        <label>Gender</label>
+                        <span id="displayGender">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-edit-section">
+                <h3><i class="fas fa-edit"></i> Edit Profile</h3>
+                <form id="profileForm" onsubmit="event.preventDefault(); updateProfile();">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profileName"><i class="fas fa-user"></i> Full Name</label>
+                            <input type="text" id="profileName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail"><i class="fas fa-envelope"></i> Email</label>
+                            <input type="email" id="profileEmail" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profileStudentId"><i class="fas fa-id-card"></i> Student ID</label>
+                            <input type="text" id="profileStudentId">
+                        </div>
+                        <div class="form-group">
+                            <label for="profileGender"><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select id="profileGender" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutConfirmModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-icon-header">
+                <div class="modal-icon warning">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+                <h2>Confirm Logout</h2>
+                <p>Are you sure you want to logout?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeLogoutConfirmModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-danger" onclick="confirmUserLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Selector Modal -->
+    <div id="themeSelectorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeThemeSelector()">&times;</span>
+            <h2><i class="fas fa-palette"></i> Choose Your Theme</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Select a theme that suits your preference</p>
+            
+            <div class="theme-selector-grid">
+                <div class="theme-option" onclick="selectTheme('default')">
+                    <div class="theme-preview" style="background: linear-gradient(135deg, #2563eb, #1e40af);">
+                        <i class="fas fa-check theme-check" id="check-default"></i>
+                    </div>
+                    <h4>Default Blue</h4>
+                    <p>Classic and professional</p>
+                </div>
+                
+                <div class="theme-option" onclick="selectTheme('dark')">
+                    <div class="theme-preview" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+                        <i class="fas fa-check theme-check" id="check-dark"></i>
+                    </div>
+                    <h4>Dark Mode</h4>
+                    <p>Easy on the eyes</p>
+                </div>
+                
+                <div class="theme-option" onclick="selectTheme('green')">
+                    <div class="theme-preview" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-check theme-check" id="check-green"></i>
+                    </div>
+                    <h4>Green</h4>
+                    <p>Fresh and natural</p>
+                </div>
+                
+                <div class="theme-option" onclick="selectTheme('purple')">
+                    <div class="theme-preview" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        <i class="fas fa-check theme-check" id="check-purple"></i>
+                    </div>
+                    <h4>Purple</h4>
+                    <p>Creative and modern</p>
+                </div>
+                
+                <div class="theme-option" onclick="selectTheme('red')">
+                    <div class="theme-preview" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        <i class="fas fa-check theme-check" id="check-red"></i>
+                    </div>
+                    <h4>Red</h4>
+                    <p>Bold and energetic</p>
+                </div>
+                
+                <div class="theme-option" onclick="selectTheme('orange')">
+                    <div class="theme-preview" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-check theme-check" id="check-orange"></i>
+                    </div>
+                    <h4>Orange</h4>
+                    <p>Warm and vibrant</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-secondary" onclick="resetToDefaultTheme()">
+                    <i class="fas fa-undo"></i> Reset to Default
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="auth.js"></script>
+    <script src="theme.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

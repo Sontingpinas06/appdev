@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCP Uniform Guide - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <i class="fas fa-shield-halved"></i>
+                <h1>Admin Panel</h1>
+                <p>BCP Uniform Guide Management System</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i> Username
+                    </label>
+                    <input type="text" id="username" required placeholder="Enter username" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <input type="password" id="password" required placeholder="Enter password" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <div class="login-hint">
+                    <small><i class="fas fa-info-circle"></i> Default credentials: admin / admin123</small>
+                </div>
+            </form>
+            <div class="login-footer">
+                <a href="index.html" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Main Site
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+        <!-- Admin Navigation -->
+        <nav class="admin-navbar">
+            <div class="admin-nav-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>BCP Admin Panel</span>
+            </div>
+            <div class="admin-nav-menu">
+                <a href="#dashboard" class="admin-nav-link active" onclick="showAdminSection('dashboard')">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a>
+                <a href="#inventory" class="admin-nav-link" onclick="showAdminSection('inventory')">
+                    <i class="fas fa-boxes"></i> Inventory
+                </a>
+                <a href="#pricing" class="admin-nav-link" onclick="showAdminSection('pricing')">
+                    <i class="fas fa-tags"></i> Pricing
+                </a>
+                <a href="#settings" class="admin-nav-link" onclick="showAdminSection('settings')">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </div>
+            <div class="admin-nav-actions">
+                <button class="btn btn-secondary btn-small" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="admin-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="admin-section active">
+                <div class="admin-header">
+                    <h2><i class="fas fa-chart-line"></i> Dashboard Overview</h2>
+                    <button class="btn btn-primary" onclick="refreshDashboard()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-tshirt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalItems">0</h3>
+                            <p>Total Items</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalStock">0</h3>
+                            <p>Total Stock</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="lowStock">0</h3>
+                            <p>Low Stock Items</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalValue">₱0</h3>
+                            <p>Inventory Value</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-chart-bar"></i> Stock by Category</h3>
+                        <div id="categoryChart" class="chart-container"></div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-exclamation-circle"></i> Low Stock Alerts</h3>
+                        <div id="lowStockAlerts" class="alerts-container"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory" class="admin-section">
+                <div class="admin-header">
+                    <h2><i class="fas fa-boxes"></i> Inventory Management</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportInventory()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button class="btn btn-primary" onclick="showAddItemModal()">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label><i class="fas fa-filter"></i> Filter:</label>
+                        <select id="adminGenderFilter" onchange="filterInventory()">
+                            <option value="">All Genders</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Unisex">Unisex</option>
+                        </select>
+                        <select id="adminCategoryFilter" onchange="filterInventory()">
+                            <option value="">All Categories</option>
+                            <option value="Upper Wear">Upper Wear</option>
+                            <option value="Lower Wear">Lower Wear</option>
+                            <option value="PE Uniform">PE Uniform</option>
+                        </select>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="adminSearchInput" placeholder="Search items..." oninput="filterInventory()">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="admin-table" id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Gender</th>
+                                <th>Sizes</th>
+                                <th>Total Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Pricing Section -->
+            <section id="pricing" class="admin-section">
+                <div class="admin-header">
+                    <h2><i class="fas fa-tags"></i> Pricing Management</h2>
+                    <button class="btn btn-primary" onclick="bulkPriceUpdate()">
+                        <i class="fas fa-percent"></i> Bulk Update
+                    </button>
+                </div>
+
+                <div class="pricing-grid" id="pricingGrid"></div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="admin-section">
+                <div class="admin-header">
+                    <h2><i class="fas fa-cog"></i> System Settings</h2>
+                </div>
+
+                <div class="settings-container">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-user-cog"></i> Student Permissions</h3>
+                        <p>Control what students can edit in their profiles</p>
+                        <div class="permission-controls">
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="allowProfileEdit" onchange="toggleProfileEditPermission()" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <span class="setting-label">Allow Profile Editing</span>
+                                    <small>Students can edit their name, email, and student ID</small>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="allowMeasurementEdit" onchange="toggleMeasurementEditPermission()" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <span class="setting-label">Allow Measurement Editing</span>
+                                    <small>Students can update their body measurements</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3><i class="fas fa-palette"></i> Theme Settings</h3>
+                        <p>Configure the appearance of the main site</p>
+                        <button class="btn btn-primary" onclick="openThemeCustomizer()">
+                            <i class="fas fa-paint-brush"></i> Customize Theme
+                        </button>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3><i class="fas fa-database"></i> Data Management</h3>
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" onclick="backupData()">
+                                <i class="fas fa-save"></i> Backup Data
+                            </button>
+                            <button class="btn btn-secondary" onclick="restoreData()">
+                                <i class="fas fa-upload"></i> Restore Data
+                            </button>
+                            <button class="btn btn-danger" onclick="resetData()">
+                                <i class="fas fa-redo"></i> Reset to Default
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3><i class="fas fa-bell"></i> Notifications</h3>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="lowStockNotif" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Low Stock Alerts</span>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" id="orderNotif" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>New Order Notifications</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3><i class="fas fa-key"></i> Security</h3>
+                        <button class="btn btn-secondary" onclick="changePassword()">
+                            <i class="fas fa-lock"></i> Change Password
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Stock Modal -->
+    <div id="editStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <div id="editStockBody"></div>
+        </div>
+    </div>
+
+    <!-- Theme Customizer Modal -->
+    <div id="themeCustomizer" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeThemeCustomizer()">&times;</span>
+            <h2><i class="fas fa-palette"></i> Theme Customizer</h2>
+            <p>Customize the appearance of the main site</p>
+            
+            <div class="theme-customizer-content">
+                <div class="theme-presets">
+                    <h3>Quick Themes</h3>
+                    <div class="preset-grid">
+                        <div class="preset-card" onclick="applyPreset('default')">
+                            <div class="preset-preview" style="background: linear-gradient(135deg, #2563eb, #1e40af);"></div>
+                            <span>Default Blue</span>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('dark')">
+                            <div class="preset-preview" style="background: linear-gradient(135deg, #1e293b, #0f172a);"></div>
+                            <span>Dark Mode</span>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('green')">
+                            <div class="preset-preview" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                            <span>Green</span>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('purple')">
+                            <div class="preset-preview" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
+                            <span>Purple</span>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('red')">
+                            <div class="preset-preview" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
+                            <span>Red</span>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('orange')">
+                            <div class="preset-preview" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+                            <span>Orange</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="theme-custom">
+                    <h3>Custom Colors</h3>
+                    <div class="color-picker-grid">
+                        <div class="color-picker-item">
+                            <label>Primary Color</label>
+                            <input type="color" id="primaryColor" value="#2563eb" onchange="updateCustomTheme()">
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Secondary Color</label>
+                            <input type="color" id="secondaryColor" value="#64748b" onchange="updateCustomTheme()">
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Success Color</label>
+                            <input type="color" id="successColor" value="#10b981" onchange="updateCustomTheme()">
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Background Color</label>
+                            <input type="color" id="bgColor" value="#f8fafc" onchange="updateCustomTheme()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="theme-actions">
+                    <button class="btn btn-primary" onclick="saveTheme()">
+                        <i class="fas fa-save"></i> Save Theme
+                    </button>
+                    <button class="btn btn-secondary" onclick="previewTheme()">
+                        <i class="fas fa-eye"></i> Preview on Main Site
+                    </button>
+                    <button class="btn btn-danger" onclick="resetTheme()">
+                        <i class="fas fa-undo"></i> Reset to Default
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="adminToast" class="toast"></div>
+
+    <!-- Bulk Update Modal -->
+    <div id="bulkUpdateModal" class="modal">
+        <div class="modal-content modal-bulk">
+            <span class="close" onclick="closeBulkUpdateModal()">&times;</span>
+            <h2><i class="fas fa-percent"></i> Bulk Price Update</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Apply percentage changes to all uniform prices</p>
+            
+            <div class="bulk-update-content">
+                <div class="bulk-option-tabs">
+                    <button class="bulk-tab active" onclick="selectBulkOption('percentage')" id="percentageTab">
+                        <i class="fas fa-percent"></i>
+                        <span>Percentage Change</span>
+                    </button>
+                    <button class="bulk-tab" onclick="selectBulkOption('fixed')" id="fixedTab">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Fixed Amount</span>
+                    </button>
+                </div>
+                
+                <!-- Percentage Update -->
+                <div id="percentageUpdate" class="bulk-update-form active">
+                    <div class="form-group">
+                        <label><i class="fas fa-percent"></i> Percentage Change</label>
+                        <input type="number" id="percentageValue" placeholder="Enter percentage (e.g., 10 for +10%, -5 for -5%)" step="0.01">
+                        <small>Positive values increase prices, negative values decrease prices</small>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <h4><i class="fas fa-filter"></i> Apply to:</h4>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterGenderAll" checked onchange="toggleBulkFilters('gender')">
+                                <span>All Genders</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterMale" disabled>
+                                <span>Male</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterFemale" disabled>
+                                <span>Female</span>
+                            </label>
+                        </div>
+                        
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterCategoryAll" checked onchange="toggleBulkFilters('category')">
+                                <span>All Categories</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterUpperWear" disabled>
+                                <span>Upper Wear</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterLowerWear" disabled>
+                                <span>Lower Wear</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterPE" disabled>
+                                <span>PE Uniform</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section">
+                        <h4><i class="fas fa-eye"></i> Preview Changes:</h4>
+                        <div id="pricePreview" class="price-preview">
+                            <p class="preview-hint">Enter a percentage to see preview</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fixed Amount Update -->
+                <div id="fixedUpdate" class="bulk-update-form">
+                    <div class="form-group">
+                        <label><i class="fas fa-dollar-sign"></i> Fixed Amount Change</label>
+                        <input type="number" id="fixedValue" placeholder="Enter amount (e.g., 50 for +₱50, -20 for -₱20)" step="0.01">
+                        <small>Positive values increase prices, negative values decrease prices</small>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <h4><i class="fas fa-filter"></i> Apply to:</h4>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterGenderAllFixed" checked onchange="toggleBulkFilters('genderFixed')">
+                                <span>All Genders</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterMaleFixed" disabled>
+                                <span>Male</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterFemaleFixed" disabled>
+                                <span>Female</span>
+                            </label>
+                        </div>
+                        
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterCategoryAllFixed" checked onchange="toggleBulkFilters('categoryFixed')">
+                                <span>All Categories</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterUpperWearFixed" disabled>
+                                <span>Upper Wear</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterLowerWearFixed" disabled>
+                                <span>Lower Wear</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterPEFixed" disabled>
+                                <span>PE Uniform</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section">
+                        <h4><i class="fas fa-eye"></i> Preview Changes:</h4>
+                        <div id="pricePreviewFixed" class="price-preview">
+                            <p class="preview-hint">Enter an amount to see preview</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions" style="margin-top: 2rem;">
+                    <button class="btn btn-secondary" onclick="closeBulkUpdateModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn btn-primary" onclick="applyBulkUpdate()">
+                        <i class="fas fa-check"></i> Apply Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-icon-header">
+                <div class="modal-icon warning">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+                <h2>Confirm Logout</h2>
+                <p>Are you sure you want to logout?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeLogoutModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-danger" onclick="confirmLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Details Modal -->
+    <div id="itemDetailsModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeItemDetailsModal()">&times;</span>
+            <div id="itemDetailsBody"></div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
