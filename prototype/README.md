@@ -1,5 +1,13 @@
 # BCP Uniform Guide - Body Scan Sizing Prototype
 
+> **⚠️ Legacy reference.** This folder is the original static prototype. The app
+> now lives in `client/` (React) + `server/` (Express API) — see the root
+> `README.md`. This prototype is kept for reference only.
+>
+> **Doc drift:** the shopping cart, checkout and 12% tax flow described below was
+> never built (only unused cart CSS remains in `styles.css`). It is scheduled for
+> Phase 3 of the production plan.
+
 A fully functional prototype featuring AI-powered body scan sizing, real-time stock availability, and transparent pricing for BCP school uniforms.
 
 ## Features

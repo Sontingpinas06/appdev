@@ -71,13 +71,21 @@ const uniformController = {
 
                     // Optional measurements (15 pts each)
                     if (chest) {
-                        if (chest >= size.chest_min && chest <= size.chest_max) score += 15;
-                        else score += Math.max(0, 15 - Math.abs(chest - (size.chest_min + size.chest_max)/2));
+                        if (chest >= size.chest_min && chest <= size.chest_max) {
+                            score += 15;
+                        } else {
+                            const diff = Math.min(Math.abs(chest - size.chest_min), Math.abs(chest - size.chest_max));
+                            score += Math.max(0, 15 - diff);
+                        }
                     } else score += 10;
 
                     if (waist) {
-                        if (waist >= size.waist_min && waist <= size.waist_max) score += 15;
-                        else score += Math.max(0, 15 - Math.abs(waist - (size.waist_min + size.waist_max)/2));
+                        if (waist >= size.waist_min && waist <= size.waist_max) {
+                            score += 15;
+                        } else {
+                            const diff = Math.min(Math.abs(waist - size.waist_min), Math.abs(waist - size.waist_max));
+                            score += Math.max(0, 15 - diff);
+                        }
                     } else score += 10;
 
                     if (score > bestScore) {
@@ -91,6 +99,7 @@ const uniformController = {
                         uniformId: uniform.id,
                         uniformName: uniform.name,
                         category: uniform.category,
+                        icon: uniform.icon,
                         recommendedSize: bestSize.size,
                         price: bestSize.price,
                         stock: bestSize.stock,

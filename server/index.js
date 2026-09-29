@@ -10,9 +10,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const clientOrigins = (process.env.CLIENT_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Body parser
+app.use(cors({
+    origin: clientOrigins.length ? clientOrigins : true, // Restrict to known clients when configured
+    credentials: true
+}));
+app.use(express.json({ limit: '100kb' })); // Body parser
 app.use(morgan('dev')); // Logging
 
 // Routes
