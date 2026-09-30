@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useCartStore } from '../store/cart';
+import { useModalA11y } from '../hooks/useModalA11y';
 import type { Uniform } from '../types';
 
 interface Props {
@@ -11,6 +12,9 @@ export default function ItemModal({ uniform, onClose }: Props) {
     const add = useCartStore((state) => state.add);
     const firstInStock = uniform.sizes.find((size) => size.stock > 0);
     const [selectedSizeId, setSelectedSizeId] = useState<number | null>(firstInStock?.id ?? null);
+    const dialogRef = useRef<HTMLDivElement>(null);
+
+    useModalA11y(true, true, dialogRef, onClose);
 
     const selected = uniform.sizes.find((size) => size.id === selectedSizeId) ?? null;
 
@@ -37,8 +41,20 @@ export default function ItemModal({ uniform, onClose }: Props) {
                 if (event.target === event.currentTarget) onClose();
             }}
         >
-            <div className="modal-content">
-                <span className="close" onClick={onClose}>
+            <div className="modal-content" ref={dialogRef} role="dialog" aria-modal="true" aria-label={uniform.name} tabIndex={-1}>
+                <span
+                    className="close"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Close dialog"
+                    onClick={onClose}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onClose();
+                        }
+                    }}
+                >
                     &times;
                 </span>
 

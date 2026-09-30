@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, getOrders, getUniforms, patchOrderStatus, patchStock } from '../api/client';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { showToast } from '../store/toast';
 import type { Order, OrderStatus, Uniform } from '../types';
 import { formatDate, paymentSummary, STATUS_LABELS } from './Orders';
@@ -27,6 +28,11 @@ export default function Admin() {
     const [editing, setEditing] = useState<Uniform | null>(null);
     const [draft, setDraft] = useState<Record<number, number>>({});
     const [saving, setSaving] = useState(false);
+    const stockDialogRef = useRef<HTMLDivElement>(null);
+
+    // Esc / focus trap while editing; disabled mid-save so a stock write isn't
+    // abandoned halfway through.
+    useModalA11y(Boolean(editing), !saving, stockDialogRef, () => setEditing(null));
 
     async function loadAll() {
         setLoading(true);
@@ -375,16 +381,32 @@ export default function Admin() {
                         if (event.target === event.currentTarget && !saving) setEditing(null);
                     }}
                 >
-                    <div className="modal-content">
+                    <div
+                        className="modal-content"
+                        ref={stockDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="stockEditorTitle"
+                        tabIndex={-1}
+                    >
                         <span
                             className="close"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Close dialog"
                             onClick={() => {
                                 if (!saving) setEditing(null);
+                            }}
+                            onKeyDown={(event) => {
+                                if ((event.key === 'Enter' || event.key === ' ') && !saving) {
+                                    event.preventDefault();
+                                    setEditing(null);
+                                }
                             }}
                         >
                             &times;
                         </span>
-                        <h2>
+                        <h2 id="stockEditorTitle">
                             <i className="fas fa-warehouse"></i> Stock: {editing.name}
                         </h2>
                         <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 1.5rem' }}>

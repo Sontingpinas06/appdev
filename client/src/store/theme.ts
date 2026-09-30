@@ -13,7 +13,9 @@ export const themePresets = {
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
         textSecondary: '#64748b',
-        border: '#e2e8f0'
+        border: '#e2e8f0',
+        // Ink on primary fills: white passes AA on #2563eb.
+        onPrimary: '#ffffff'
     },
     dark: {
         primary: '#3b82f6',
@@ -26,7 +28,9 @@ export const themePresets = {
         cardBg: '#1e293b',
         textPrimary: '#f1f5f9',
         textSecondary: '#94a3b8',
-        border: '#334155'
+        border: '#334155',
+        // White reaches only 3.7:1 on #3b82f6; near-black ink reaches ~5:1.
+        onPrimary: '#0b1220'
     },
     green: {
         primary: '#10b981',
@@ -39,11 +43,12 @@ export const themePresets = {
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
         textSecondary: '#64748b',
-        border: '#bbf7d0'
+        border: '#bbf7d0',
+        onPrimary: '#042f1e'
     },
     purple: {
-        primary: '#8b5cf6',
-        primaryDark: '#7c3aed',
+        primary: '#7c3aed',
+        primaryDark: '#6d28d9',
         secondary: '#64748b',
         success: '#10b981',
         danger: '#ef4444',
@@ -52,7 +57,8 @@ export const themePresets = {
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
         textSecondary: '#64748b',
-        border: '#e9d5ff'
+        border: '#e9d5ff',
+        onPrimary: '#ffffff'
     },
     red: {
         primary: '#ef4444',
@@ -65,7 +71,8 @@ export const themePresets = {
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
         textSecondary: '#64748b',
-        border: '#fecaca'
+        border: '#fecaca',
+        onPrimary: '#2c0707'
     },
     orange: {
         primary: '#f59e0b',
@@ -78,7 +85,8 @@ export const themePresets = {
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
         textSecondary: '#64748b',
-        border: '#fed7aa'
+        border: '#fed7aa',
+        onPrimary: '#431407'
     }
 } as const;
 
@@ -101,20 +109,29 @@ function applyTheme(theme: Theme): void {
     root.style.setProperty('--text-primary', theme.textPrimary);
     root.style.setProperty('--text-secondary', theme.textSecondary);
     root.style.setProperty('--border-color', theme.border);
+    // Ink for text/icons rendered on primary fills (AA contrast per preset).
+    root.style.setProperty('--on-primary', theme.onPrimary);
+    // Derived surfaces recompute from the new card/primary values.
+    root.style.setProperty(
+        '--backdrop-tint',
+        `color-mix(in srgb, ${theme.primary} 12%, ${theme.bg})`
+    );
+    // Standalone PWA status bar follows the active theme.
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme.primary);
 }
 
+/**
+ * The named preset is the source of truth, so newly added keys (e.g.
+ * onPrimary) and refreshed palette values always reach the app. Older builds
+ * also stored a full theme snapshot under THEME_STORAGE; it is intentionally
+ * not read back - a stale blob could silently miss new keys. The snapshot is
+ * still written for debuggability.
+ */
 function readStoredTheme(): { name: ThemeName; theme: Theme } {
-    const name = (localStorage.getItem(THEME_NAME_STORAGE) || 'default') as ThemeName;
-    const raw = localStorage.getItem(THEME_STORAGE);
-
-    if (raw) {
-        try {
-            return { name, theme: JSON.parse(raw) as Theme };
-        } catch {
-            // Corrupt payload: fall through to the preset.
-        }
-    }
-    return { name: 'default', theme: themePresets.default };
+    const stored = localStorage.getItem(THEME_NAME_STORAGE) as ThemeName | null;
+    const name = stored && stored in themePresets ? stored : 'default';
+    return { name, theme: themePresets[name] };
 }
 
 interface ThemeState {

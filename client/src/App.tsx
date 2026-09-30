@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ThemeModal from './components/ThemeModal';
 import Toast from './components/Toast';
@@ -43,8 +44,11 @@ export default function App() {
         <BrowserRouter>
             <ScrollToTop />
             <SessionBootstrap />
+            <a className="skip-link" href="#main-content">
+                Skip to content
+            </a>
             <Navbar />
-            <main className="main-content">
+            <main className="main-content" id="main-content" tabIndex={-1}>
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/sizing" element={<Sizing />} />
@@ -94,6 +98,7 @@ export default function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </main>
+            <Footer />
             <ThemeModal />
             <Toast />
         </BrowserRouter>

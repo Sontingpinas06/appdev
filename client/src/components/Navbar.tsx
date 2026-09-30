@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { cartCount, useCartStore } from '../store/cart';
 import { useThemeStore } from '../store/theme';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link${isActive ? ' active' : ''}`;
@@ -24,6 +25,10 @@ export default function Navbar() {
     const itemCount = cartCount(cartItems);
     const navigate = useNavigate();
     const profileRef = useRef<HTMLDivElement>(null);
+    const logoutDialogRef = useRef<HTMLDivElement>(null);
+
+    // Esc / focus trap / focus restore for the logout confirmation dialog.
+    useModalA11y(confirmLogout, true, logoutDialogRef, () => setConfirmLogout(false));
 
     const closeMenu = () => {
         setMenuOpen(false);
@@ -222,12 +227,19 @@ export default function Navbar() {
 
             {confirmLogout && (
                 <div className="modal" style={{ display: 'block' }}>
-                    <div className="modal-content modal-small">
+                    <div
+                        className="modal-content modal-small"
+                        ref={logoutDialogRef}
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="logoutConfirmTitle"
+                        tabIndex={-1}
+                    >
                         <div className="modal-icon-header">
                             <div className="modal-icon warning">
                                 <i className="fas fa-sign-out-alt"></i>
                             </div>
-                            <h2>Confirm Logout</h2>
+                            <h2 id="logoutConfirmTitle">Confirm Logout</h2>
                             <p>Are you sure you want to logout?</p>
                         </div>
                         <div className="modal-actions">

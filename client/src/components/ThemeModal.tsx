@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import { useThemeStore, type ThemeName } from '../store/theme';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const themeOptions: { name: ThemeName; title: string; description: string; preview: string }[] = [
     { name: 'default', title: 'Default Blue', description: 'Classic and professional', preview: 'linear-gradient(135deg, #2563eb, #1e40af)' },
@@ -11,6 +13,10 @@ const themeOptions: { name: ThemeName; title: string; description: string; previ
 
 export default function ThemeModal() {
     const { modalOpen, closeModal, themeName, selectTheme, resetTheme } = useThemeStore();
+    const dialogRef = useRef<HTMLDivElement>(null);
+
+    // Hook must run before the early return below (rules of hooks).
+    useModalA11y(modalOpen, true, dialogRef, closeModal);
 
     if (!modalOpen) return null;
 
@@ -22,8 +28,20 @@ export default function ThemeModal() {
                 if (e.target === e.currentTarget) closeModal();
             }}
         >
-            <div className="modal-content">
-                <span className="close" onClick={closeModal}>
+            <div className="modal-content" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Choose your theme" tabIndex={-1}>
+                <span
+                    className="close"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Close dialog"
+                    onClick={closeModal}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            closeModal();
+                        }
+                    }}
+                >
                     &times;
                 </span>
                 <h2>
@@ -35,7 +53,20 @@ export default function ThemeModal() {
 
                 <div className="theme-selector-grid">
                     {themeOptions.map((option) => (
-                        <div key={option.name} className="theme-option" onClick={() => selectTheme(option.name)}>
+                        <div
+                            key={option.name}
+                            className="theme-option"
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={themeName === option.name}
+                            onClick={() => selectTheme(option.name)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    selectTheme(option.name);
+                                }
+                            }}
+                        >
                             <div className="theme-preview" style={{ background: option.preview }}>
                                 <i
                                     className={`fas fa-check theme-check ${themeName === option.name ? 'active' : ''}`}
