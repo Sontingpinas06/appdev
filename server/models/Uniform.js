@@ -35,7 +35,12 @@ module.exports = (sequelize) => {
         },
         price: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: false
+            allowNull: false,
+            // PostgreSQL returns DECIMAL as a string; the API always speaks numbers.
+            get() {
+                const value = this.getDataValue('price');
+                return value == null ? null : Number(value);
+            }
         },
         stock: {
             type: DataTypes.INTEGER,

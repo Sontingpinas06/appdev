@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useCartStore } from '../store/cart';
 import type { Uniform } from '../types';
 
 interface Props {
@@ -6,6 +8,27 @@ interface Props {
 }
 
 export default function ItemModal({ uniform, onClose }: Props) {
+    const add = useCartStore((state) => state.add);
+    const firstInStock = uniform.sizes.find((size) => size.stock > 0);
+    const [selectedSizeId, setSelectedSizeId] = useState<number | null>(firstInStock?.id ?? null);
+
+    const selected = uniform.sizes.find((size) => size.id === selectedSizeId) ?? null;
+
+    const handleAddToCart = () => {
+        if (!selected || selected.stock === 0) return;
+        add({
+            uniformId: uniform.id,
+            sizeId: selected.id,
+            uniformName: uniform.name,
+            category: uniform.category,
+            icon: uniform.icon,
+            sizeLabel: selected.size,
+            price: selected.price,
+            stock: selected.stock
+        });
+        onClose();
+    };
+
     return (
         <div
             className="modal"
@@ -36,23 +59,44 @@ export default function ItemModal({ uniform, onClose }: Props) {
                 </p>
 
                 <div className="size-selector">
-                    <h4>Available Sizes &amp; Pricing:</h4>
+                    <h4>Select a size:</h4>
                     <div className="size-options">
                         {uniform.sizes.map((size) => (
-                            <div
-                                className={`size-option${size.stock === 0 ? ' out-of-stock' : ''}`}
-                                key={size.size}
+                            <button
+                                type="button"
+                                className={`size-option${size.stock === 0 ? ' out-of-stock' : ''}${
+                                    size.id === selectedSizeId ? ' selected' : ''
+                                }`}
+                                key={size.id}
+                                disabled={size.stock === 0}
+                                onClick={() => setSelectedSizeId(size.id)}
                             >
                                 <div className="size-name">{size.size}</div>
                                 <div className="size-stock">
                                     {size.stock > 0 ? `${size.stock} left` : 'Out of Stock'}
                                 </div>
-                                <div style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                                <div
+                                    className="size-price"
+                                >
                                     ₱{size.price.toFixed(2)}
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
+                </div>
+
+                <div className="item-actions" style={{ marginTop: '1.5rem' }}>
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleAddToCart}
+                        disabled={!selected || selected.stock === 0}
+                    >
+                        <i className="fas fa-cart-plus"></i> Add to Cart
+                        {selected ? ` — ₱${selected.price.toFixed(2)}` : ''}
+                    </button>
+                    <button className="btn btn-secondary" onClick={onClose}>
+                        <i className="fas fa-times"></i> Close
+                    </button>
                 </div>
             </div>
         </div>

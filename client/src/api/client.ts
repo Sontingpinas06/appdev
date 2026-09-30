@@ -22,7 +22,13 @@ export function setRefreshHandler(handler: () => Promise<string | null>): void {
 export class ApiError extends Error {
     constructor(
         public readonly status: number,
-        message: string
+        message: string,
+        /** Parsed error body, when the server sent one (e.g. order conflicts). */
+        public readonly body?: {
+            message?: string;
+            conflicts?: import('../types').StockConflict[];
+            errors?: unknown;
+        }
     ) {
         super(message);
         this.name = 'ApiError';
@@ -57,13 +63,14 @@ async function request<T>(path: string, init: RequestInit = {}, allowRetry = tru
 
     if (!response.ok) {
         let message = `Request failed (${response.status})`;
+        let body: ApiError['body'];
         try {
-            const body = await response.json();
+            body = await response.json();
             if (body?.message) message = body.message;
         } catch {
             // Non-JSON error body: keep the generic message.
         }
-        throw new ApiError(response.status, message);
+        throw new ApiError(response.status, message, body);
     }
 
     if (response.status === 204) return undefined as T;
@@ -120,4 +127,48 @@ export function postRefresh(): Promise<SessionResponse> {
 
 export function postLogout(): Promise<{ message: string }> {
     return request<{ message: string }>('/auth/logout', { method: 'POST' }, false);
+}
+
+// ---------------------------------------------------------------------------
+// Orders & stock
+// ---------------------------------------------------------------------------
+
+export function postOrder(
+    items: { uniformId: number; sizeId: number; quantity: number }[],
+    notes?: string
+): Promise<{ order: import('../types').Order }> {
+    return request<{ order: import('../types').Order }>('/orders', {
+        method: 'POST',
+        body: JSON.stringify({ items, ...(notes ? { notes } : {}) })
+    });
+}
+
+export function getOrders(scope?: 'all'): Promise<{ orders: import('../types').Order[] }> {
+    return request<{ orders: import('../types').Order[] }>(`/orders${scope ? `?scope=${scope}` : ''}`);
+}
+
+export function getOrder(id: string): Promise<{ order: import('../types').Order }> {
+    return request<{ order: import('../types').Order }>(`/orders/${id}`);
+}
+
+export function patchOrderStatus(
+    id: string,
+    status: import('../types').OrderStatus
+): Promise<{ order: import('../types').Order }> {
+    return request<{ order: import('../types').Order }>(`/orders/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+    });
+}
+
+export function patchStock(body: {
+    sizeId?: number;
+    uniformId?: number;
+    sizeIndex?: number;
+    newStock: number;
+}): Promise<{ message: string }> {
+    return request<{ message: string }>('/uniforms/stock', {
+        method: 'PATCH',
+        body: JSON.stringify(body)
+    });
 }

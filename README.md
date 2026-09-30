@@ -6,7 +6,7 @@ The app is being moved from a static prototype to a production architecture:
 
 ```
 client/     React 18 + Vite + TypeScript SPA (the app)
-server/     Express API (uniforms, sizing recommendations, stock)
+server/     Express API (auth, catalogue, sizing recommendations, stock, orders)
 prototype/  Legacy static prototype — kept as a reference only
 ```
 
@@ -30,8 +30,10 @@ npm install
 npm run dev
 ```
 
-The API creates tables at boot while `DB_SYNC=true` and seeds the admin account
-from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (existing passwords are never overwritten).
+The API creates tables at boot while `DB_SYNC=true`, seeds the catalogue from
+`server/data/initialData.js` (11 uniforms / 60 sizes) on first run, and seeds the
+admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (existing passwords are never
+overwritten).
 
 ## Scripts
 
@@ -40,10 +42,12 @@ from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (existing passwords are never overwritten)
 | client | `npm run dev`       | Vite dev server with `/api` proxy                        |
 | client | `npm run typecheck` | TypeScript, no emit                                      |
 | client | `npm run build`     | Typecheck + production build to `client/dist`            |
-| client | `npm run smoke`     | Playwright end-to-end smoke (sizing, catalog, auth, themes) |
+| client | `npm run smoke`     | Playwright end-to-end smoke (sizing, catalog, auth, cart, checkout, admin) |
 | server | `npm run dev`       | API with auto-reload                                     |
 | server | `npm run check:auth` | Auth/roles acceptance gate (20 checks)                  |
+| server | `npm run check:orders` | Checkout/orders acceptance gate (21 checks)          |
 | server | `npm run check:parity` | Asserts the API sizing algorithm still matches the legacy prototype's |
+| server | `npm run reset:stock` | Restores catalogue stock to the seed values (test runs place real orders) |
 
 ## API
 
@@ -51,7 +55,11 @@ from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (existing passwords are never overwritten)
 | ------ | --------------------------------- | -------------------------------------------------- |
 | GET    | `/api/uniforms`                   | All uniforms, `?gender=`, `?category=`, `?search=`  |
 | POST   | `/api/uniforms/recommendations`   | Size recommendations from measurements              |
-| PATCH  | `/api/uniforms/stock`             | Update stock (**admin only**)                       |
+| PATCH  | `/api/uniforms/stock`             | Update a size's stock — `{sizeId,newStock}` (**admin only**) |
+| POST   | `/api/orders`                     | Checkout: validates + reserves stock in a transaction (auth) |
+| GET    | `/api/orders`                     | Own order history; admins may pass `?scope=all`      |
+| GET    | `/api/orders/:id`                 | One order (owner or admin; others get 404)           |
+| PATCH  | `/api/orders/:id/status`          | Set `pending/paid/ready/completed/cancelled` (**admin only**; cancelling restores stock) |
 | POST   | `/api/auth/register`              | Create a student account (rate limited)             |
 | POST   | `/api/auth/login`                 | Email or student ID + password → access token       |
 | POST   | `/api/auth/refresh`               | httpOnly refresh cookie → new access token           |
@@ -63,18 +71,25 @@ Auth model: 15-minute access token in memory on the client, 7-day refresh token
 in an httpOnly cookie scoped to `/api/auth`, `tokenVersion` on the user row for
 revocation, bcrypt (12 rounds), 30 credential attempts / 15 min / IP.
 
+Orders: the cart lives client-side (localStorage, `bcpCart`); checkout sends the
+whole cart to the server, which prices it from the database, reserves the stock
+under row locks and stores line-item snapshots, so history survives catalogue
+edits. Payment happens in Phase 4 — orders start as `pending`.
+
 ## Status
 
 Production plan phases:
 
 - [x] **Phase 1** — React port of the student app (home, body scan, catalog, themes) on top of the API
 - [x] **Phase 2** — Auth & roles: registration/login/refresh/logout, bcrypt, JWT, rate limiting, admin middleware, guarded routes, profile menu
-- [ ] Phase 3 — Cart, orders, checkout, admin inventory
+- [x] **Phase 3** — Catalogue in PostgreSQL, cart, checkout, order history, admin panel (inventory + order workflow)
 - [ ] Phase 4 — Payments
 - [ ] Phase 5 — Real photo-scan AI sizing (currently simulated)
 - [ ] Phase 6 — Test coverage, security hardening, performance
 - [ ] Phase 0/7 — Sequelize migrations (tables are created with `DB_SYNC` today), Docker/CI deployment
 
-Not ported yet: `prototype/admin.html` (admin panel UI) — see the placeholder at
-`/admin`, which is now behind the admin role check. Profile editing (`PATCH
-/auth/me`) is not implemented.
+Still to port from `prototype/admin.html`: the dashboard charts, bulk pricing
+updates, settings toggles and the theme customizer (the React admin panel at
+`/admin` currently covers inventory and orders). Not implemented anywhere yet:
+profile editing (`PATCH /auth/me`) and creating/editing catalogue items from
+the admin UI.

@@ -5,9 +5,10 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 
 const env = require('./config/env');
-const { sequelize, User } = require('./models');
+const { sequelize, User, Uniform, Size } = require('./models');
 const uniformRoutes = require('./routes/uniformRoutes');
 const authRoutes = require('./routes/authRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use(morgan('dev'));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/uniforms', uniformRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
@@ -79,6 +81,26 @@ async function seedAdmin() {
     console.log(`Admin account ready: ${email}${created ? ' (seeded)' : ''}`);
 }
 
+/** Loads the reference catalogue into an empty database (idempotent). */
+async function seedUniforms() {
+    if ((await Uniform.count()) > 0) return;
+
+    const catalogue = require('./data/initialData');
+    await Uniform.bulkCreate(
+        catalogue.map((uniform) => ({ ...uniform, sizes: uniform.sizes })),
+        { include: [{ model: Size, as: 'sizes' }] }
+    );
+
+    // Keep auto-increment ahead of the explicit ids we just inserted.
+    if (sequelize.getDialect() === 'postgres') {
+        await sequelize.query(
+            `SELECT setval(pg_get_serial_sequence('"Uniforms"', 'id'), (SELECT MAX(id) FROM "Uniforms"))`
+        );
+    }
+
+    console.log(`Seeded ${catalogue.length} uniforms`);
+}
+
 async function start() {
     try {
         await sequelize.authenticate();
@@ -89,6 +111,7 @@ async function start() {
             console.log('Schema synced (DB_SYNC=true - replace with migrations before production)');
         }
 
+        await seedUniforms();
         await seedAdmin();
 
         app.listen(env.port, () => {

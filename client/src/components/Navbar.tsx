@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
+import { cartCount, useCartStore } from '../store/cart';
 import { useThemeStore } from '../store/theme';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -19,6 +20,8 @@ export default function Navbar() {
 
     const openThemeModal = useThemeStore((state) => state.openModal);
     const { user, logout } = useAuthStore();
+    const cartItems = useCartStore((state) => state.items);
+    const itemCount = cartCount(cartItems);
     const navigate = useNavigate();
     const profileRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +107,10 @@ export default function Navbar() {
                         </NavLink>
 
                         <div className="mobile-menu-footer">
+                            <Link to="/cart" className="btn btn-secondary btn-small" onClick={closeMenu} title="Cart">
+                                <i className="fas fa-shopping-cart"></i>
+                                <span>Cart{itemCount > 0 ? ` (${itemCount})` : ''}</span>
+                            </Link>
                             <button className="btn btn-secondary btn-small" onClick={openTheme} title="Change Theme">
                                 <i className="fas fa-palette"></i> <span>Change Theme</span>
                             </button>
@@ -134,6 +141,15 @@ export default function Navbar() {
                                         </div>
                                     </div>
                                     <div className="dropdown-divider"></div>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setProfileOpen(false);
+                                            navigate('/orders');
+                                        }}
+                                    >
+                                        <i className="fas fa-receipt"></i> My Orders
+                                    </button>
                                     <button
                                         className="dropdown-item"
                                         onClick={() => {
@@ -174,6 +190,15 @@ export default function Navbar() {
                             </div>
                         )}
 
+                        <Link
+                            to="/cart"
+                            className="btn btn-secondary btn-small nav-cart"
+                            title="Cart"
+                            aria-label={`Cart, ${itemCount} item${itemCount === 1 ? '' : 's'}`}
+                        >
+                            <i className="fas fa-shopping-cart"></i>
+                            {itemCount > 0 && <span className="cart-count">{itemCount}</span>}
+                        </Link>
                         <button
                             className="btn btn-secondary btn-small"
                             onClick={openThemeModal}

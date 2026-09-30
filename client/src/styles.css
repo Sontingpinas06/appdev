@@ -2406,3 +2406,245 @@ input:disabled, select:disabled {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ---------------------------------------------------------------------------
+ * Phase 3: cart, orders and admin panel
+ * (the prototype shipped no cart/order screens; the admin rules below are
+ * adapted from prototype/admin-styles.css)
+ * ------------------------------------------------------------------------- */
+
+/* Size chips are <button>s now - reset the native button chrome */
+button.size-option {
+    background: var(--card-bg);
+    color: inherit;
+    font: inherit;
+}
+
+.size-price {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.size-option.selected .size-price {
+    color: #ffffff;
+}
+
+.size-option.selected .size-stock {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Navbar cart badge */
+.nav-cart {
+    position: relative;
+}
+
+.cart-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--danger-color);
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+}
+
+/* Order history */
+.order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.order-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.order-card-header h4 {
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
+}
+
+.order-card-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.order-card-items {
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0;
+    margin-bottom: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.order-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.95rem;
+}
+
+.order-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.order-notes {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Order status badges (palette mirrors prototype/admin-styles.css) */
+.status-badge {
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-paid {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-ready {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.status-completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Admin tables */
+.admin-table-wrap {
+    overflow-x: auto;
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-top: 1.5rem;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+.admin-table thead {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%);
+    color: #ffffff;
+}
+
+.admin-table th {
+    padding: 0.9rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-table td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.admin-table tbody tr:hover {
+    background: var(--bg-color);
+}
+
+/* Stock editor modal */
+.stock-editor-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 130px;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stock-editor-row input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.status-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+ * Contrast fixes: these elements bake a white background into their gradient,
+ * so they must keep dark text even when the theme flips to dark mode (the
+ * prototypes never rendered them against a dark theme).
+ * ------------------------------------------------------------------------- */
+.profile-button,
+.dropdown-item,
+.stat-card h3 {
+    color: #1e293b;
+}
+
+.stat-card p {
+    color: #64748b;
+}
+
+/* Catalogue badges are absolutely positioned inside the item image; inside a
+ * table cell that would anchor them to the page instead of the cell. */
+.admin-table .stock-badge {
+    position: static;
+    display: inline-block;
+}
+
+/* Keep the summary clear of the last cart line */
+.cart-summary {
+    margin-top: 2rem;
+}
+
+/* The active method chip paints a fixed pale-blue background, so its label
+   must stay dark in dark themes (affects Body Scan, Login and Admin tabs). */
+.method-btn.active span {
+    color: #1e293b;
+}

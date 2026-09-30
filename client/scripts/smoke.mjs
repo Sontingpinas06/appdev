@@ -1,5 +1,5 @@
 /**
- * Smoke test for the React app (Phases 1-2).
+ * Smoke test for the React app (Phases 1-3).
  * Drives the real app with the system Chrome install (no bundled browser).
  *
  *   npm run smoke
@@ -165,6 +165,110 @@ try {
         .then(() => true)
         .catch(() => false);
     check('auth: login restores the session', signedIn);
+
+    // --- Cart & checkout ----------------------------------------------------
+    await page.goto(`${BASE}/catalog`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.catalog-item');
+    await page.click('.catalog-item .item-actions button'); // View Details on the first card
+    await page.waitForSelector('.modal .size-selector');
+    await page.click('.modal .size-option:not([disabled])');
+    await page.click('.modal .item-actions .btn-primary'); // Add to Cart
+    await page.waitForSelector('.cart-count');
+    const badge = await page.textContent('.cart-count');
+    check('cart: add to cart updates the navbar badge', badge === '1', String(badge));
+
+    await page.goto(`${BASE}/cart`, { waitUntil: 'networkidle' });
+    check('cart: line item rendered', await page.isVisible('.cart-item'));
+    const totalBefore = await page.textContent('.summary-row.total span:nth-child(2)');
+    await page.locator('.cart-item-quantity .qty-btn').nth(1).click(); // +
+    const totalAfter = await page.textContent('.summary-row.total span:nth-child(2)');
+    check('cart: quantity buttons update the total', totalBefore !== totalAfter, `${totalBefore} -> ${totalAfter}`);
+    await page.screenshot({ path: join(shots, 'cart-page.png') });
+
+    // Signed in from the auth section, so checkout goes straight through.
+    await page.click('.summary-card .btn-primary'); // Place Order
+    await page.waitForURL('**/orders', { timeout: 10000 });
+    await page.waitForSelector('.order-card');
+    check('checkout: order appears in history', await page.isVisible('.order-card'));
+    const orderNumber = (await page.textContent('.order-card h4')) || '';
+    check('checkout: order number formatted', /BCP-\d{6}-/.test(orderNumber), orderNumber.trim());
+    await page.screenshot({ path: join(shots, 'orders-page.png') });
+
+    // --- Admin: inventory + order workflow ---------------------------------
+    // Log out of the student account, then in as the seeded admin.
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.click('#userProfile .profile-button');
+    await page.waitForSelector('.profile-dropdown.active');
+    await page.click('.profile-dropdown .dropdown-item.danger');
+    await page.waitForSelector('.modal-actions');
+    await page.click('.modal-actions .btn-danger');
+    await page.waitForSelector('#authButtons');
+
+    await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+    await page.fill('#identifier', process.env.ADMIN_EMAIL || 'admin@bcp.edu.ph');
+    await page.fill('#loginPassword', process.env.ADMIN_PASSWORD || 'Admin123!');
+    await page.click('.measurement-form.active button[type="submit"]');
+    await page.waitForSelector('#userProfile', { timeout: 5000 });
+
+    await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.admin-table tbody tr');
+    const rowCount = await page.locator('.admin-table tbody tr').count();
+    check('admin: inventory lists every catalogue item', rowCount >= 11, String(rowCount));
+    await page.screenshot({ path: join(shots, 'admin-inventory.png') });
+
+    const stockCell = page.locator('.admin-table tbody tr:first-child td').nth(4);
+    const gridBefore = Number(await stockCell.textContent());
+    await page.click('.admin-table tbody tr:first-child td:last-child .btn'); // Edit stock
+    await page.waitForSelector('.stock-editor-row');
+    const stockInput = page.locator('.stock-editor-row input').first();
+    const sizeBefore = Number(await stockInput.inputValue());
+    await stockInput.fill(String(sizeBefore + 3));
+    await page.click('.modal .item-actions .btn-primary'); // Save changes
+    await page.waitForSelector('.stock-editor', { state: 'detached', timeout: 10000 });
+    await page.waitForFunction(
+        (expected) =>
+            document.querySelector('.admin-table tbody tr:first-child td:nth-child(5)')?.textContent ===
+            expected,
+        String(gridBefore + 3),
+        { timeout: 10000 }
+    );
+    check('admin: stock edit persists', true);
+
+    // Put the number back so repeated smoke runs don't inflate the stock.
+    await page.click('.admin-table tbody tr:first-child td:last-child .btn');
+    await page.waitForSelector('.stock-editor-row');
+    await page.locator('.stock-editor-row input').first().fill(String(sizeBefore));
+    await page.click('.modal .item-actions .btn-primary');
+    await page.waitForSelector('.stock-editor', { state: 'detached', timeout: 10000 });
+    await page.waitForFunction(
+        (expected) =>
+            document.querySelector('.admin-table tbody tr:first-child td:nth-child(5)')?.textContent ===
+            expected,
+        String(gridBefore),
+        { timeout: 10000 }
+    );
+    check('admin: stock edit is reversible', true);
+
+    await page.click('.method-selector .method-btn:nth-child(2)'); // Orders tab
+    await page.waitForSelector('.status-select');
+    await page.screenshot({ path: join(shots, 'admin-orders.png') });
+    const statusSelect = page.locator('.status-select').first();
+    await statusSelect.selectOption('paid');
+    await page.waitForFunction(
+        () => document.querySelector('.status-select')?.value === 'paid',
+        undefined,
+        { timeout: 10000 }
+    );
+    check('admin: order status moves to paid', true);
+
+    // Cancel it again so this run gives the stock back.
+    await statusSelect.selectOption('cancelled');
+    await page.waitForFunction(
+        () => document.querySelector('.status-select')?.value === 'cancelled',
+        undefined,
+        { timeout: 10000 }
+    );
+    check('admin: cancelling restores the order state', true);
 
     // --- Responsive navigation -------------------------------------------
     await page.setViewportSize({ width: 390, height: 844 });

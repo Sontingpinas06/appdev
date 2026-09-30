@@ -5,9 +5,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ThemeModal from './components/ThemeModal';
 import Toast from './components/Toast';
 import Admin from './pages/Admin';
+import Cart from './pages/Cart';
 import Catalog from './pages/Catalog';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Orders from './pages/Orders';
 import Sizing from './pages/Sizing';
 import { useAuthStore } from './store/auth';
 
@@ -44,6 +46,15 @@ export default function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/sizing" element={<Sizing />} />
                     <Route path="/catalog" element={<Catalog />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route
+                        path="/orders"
+                        element={
+                            <ProtectedRoute>
+                                <Orders />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route path="/login" element={<Login />} />
                     <Route
                         path="/admin"

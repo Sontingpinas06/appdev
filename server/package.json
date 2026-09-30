@@ -8,7 +8,9 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "check:parity": "node scripts/check-sizing-parity.js",
-    "check:auth": "node scripts/check-auth-gate.js"
+    "check:auth": "node scripts/check-auth-gate.js",
+    "check:orders": "node scripts/check-orders.js",
+    "reset:stock": "node scripts/reset-stock.js"
   },
   "engines": {
     "node": ">=18"

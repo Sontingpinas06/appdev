@@ -1,63 +1,114 @@
 /**
  * Uniform Controller
- * Handles business logic for uniforms, sizing, and stock management
+ * Catalogue, size recommendations and admin stock management.
+ * Reads/writes PostgreSQL (seeded from ../data/initialData on first boot).
  */
 
-// In a real app, this would be a database model (e.g., Sequelize or Mongoose)
-// For now, we'll keep the data structure in mind
-let uniformsData = require('../data/initialData'); 
+const { Op } = require('sequelize');
+const { z } = require('zod');
+const { sequelize, Uniform, Size } = require('../models');
+
+const stockSchema = z
+    .object({
+        sizeId: z.number().int().positive().optional(),
+        uniformId: z.number().int().positive().optional(),
+        sizeIndex: z.number().int().min(0).optional(),
+        newStock: z.number().int().min(0).max(100000)
+    })
+    .refine((value) => value.sizeId != null || (value.uniformId != null && value.sizeIndex != null), {
+        message: 'Provide sizeId, or uniformId together with sizeIndex'
+    });
+
+const SIZE_ORDER = [{ model: Size, as: 'sizes' }, 'id', 'ASC'];
+const FIND_OPTIONS = {
+    include: [{ model: Size, as: 'sizes' }],
+    order: [['id', 'ASC'], SIZE_ORDER]
+};
+
+/** Case-insensitive "contains" on every dialect we support. */
+const contains = sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
+const escapeLike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
+
+function serializeUniform(uniform) {
+    const plain = uniform.get({ plain: true });
+    plain.sizes = plain.sizes.map((size) => ({
+        id: size.id,
+        size: size.size,
+        price: Number(size.price),
+        stock: size.stock,
+        height_min: size.height_min,
+        height_max: size.height_max,
+        weight_min: size.weight_min,
+        weight_max: size.weight_max,
+        chest_min: size.chest_min,
+        chest_max: size.chest_max,
+        waist_min: size.waist_min,
+        waist_max: size.waist_max
+    }));
+    return plain;
+}
 
 const uniformController = {
+    schemas: { stock: stockSchema },
+
     // Get all uniforms with optional filtering
-    getAllUniforms: async (req, res) => {
+    getAllUniforms: async (req, res, next) => {
         try {
             const { gender, category, search } = req.query;
-            let filtered = [...uniformsData];
+            const where = {};
 
             if (gender) {
-                filtered = filtered.filter(u => u.gender === gender || u.gender === 'Unisex');
+                where[Op.or] = [{ gender }, { gender: 'Unisex' }];
             }
             if (category) {
-                filtered = filtered.filter(u => u.category === category);
+                where.category = category;
             }
             if (search) {
-                const query = search.toLowerCase();
-                filtered = filtered.filter(u => 
-                    u.name.toLowerCase().includes(query) || 
-                    u.description.toLowerCase().includes(query)
-                );
+                const query = `%${escapeLike(String(search).trim())}%`;
+                where[Op.and] = [
+                    {
+                        [Op.or]: [{ name: { [contains]: query } }, { description: { [contains]: query } }]
+                    }
+                ];
             }
 
-            res.json(filtered);
+            const uniforms = await Uniform.findAll({ ...FIND_OPTIONS, where });
+            res.json(uniforms.map(serializeUniform));
         } catch (error) {
-            res.status(500).json({ message: "Error fetching uniforms", error: error.message });
+            next(error);
         }
     },
 
     // Get size recommendations based on measurements
-    getRecommendations: async (req, res) => {
+    getRecommendations: async (req, res, next) => {
         try {
             const { height, weight, chest, waist, gender } = req.body;
 
             if (!height || !weight || !gender) {
-                return res.status(400).json({ message: "Height, weight, and gender are required" });
+                return res.status(400).json({ message: 'Height, weight, and gender are required' });
             }
 
             const recommendations = [];
-            const relevantUniforms = uniformsData.filter(u => u.gender === gender || u.gender === 'Unisex');
+            const all = await Uniform.findAll(FIND_OPTIONS);
+            const relevantUniforms = all.filter(
+                (uniform) => uniform.gender === gender || uniform.gender === 'Unisex'
+            );
 
-            relevantUniforms.forEach(uniform => {
+            relevantUniforms.forEach((uniform) => {
                 let bestSize = null;
                 let bestScore = 0;
 
-                uniform.sizes.forEach(size => {
+                uniform.sizes.forEach((size) => {
                     let score = 0;
-                    
+
                     // Height matching (40 pts)
                     if (height >= size.height_min && height <= size.height_max) {
                         score += 40;
                     } else {
-                        const diff = Math.min(Math.abs(height - size.height_min), Math.abs(height - size.height_max));
+                        const diff = Math.min(
+                            Math.abs(height - size.height_min),
+                            Math.abs(height - size.height_max)
+                        );
                         score += Math.max(0, 40 - diff * 2);
                     }
 
@@ -65,7 +116,10 @@ const uniformController = {
                     if (weight >= size.weight_min && weight <= size.weight_max) {
                         score += 30;
                     } else {
-                        const diff = Math.min(Math.abs(weight - size.weight_min), Math.abs(weight - size.weight_max));
+                        const diff = Math.min(
+                            Math.abs(weight - size.weight_min),
+                            Math.abs(weight - size.weight_max)
+                        );
                         score += Math.max(0, 30 - diff);
                     }
 
@@ -74,7 +128,10 @@ const uniformController = {
                         if (chest >= size.chest_min && chest <= size.chest_max) {
                             score += 15;
                         } else {
-                            const diff = Math.min(Math.abs(chest - size.chest_min), Math.abs(chest - size.chest_max));
+                            const diff = Math.min(
+                                Math.abs(chest - size.chest_min),
+                                Math.abs(chest - size.chest_max)
+                            );
                             score += Math.max(0, 15 - diff);
                         }
                     } else score += 10;
@@ -83,7 +140,10 @@ const uniformController = {
                         if (waist >= size.waist_min && waist <= size.waist_max) {
                             score += 15;
                         } else {
-                            const diff = Math.min(Math.abs(waist - size.waist_min), Math.abs(waist - size.waist_max));
+                            const diff = Math.min(
+                                Math.abs(waist - size.waist_min),
+                                Math.abs(waist - size.waist_max)
+                            );
                             score += Math.max(0, 15 - diff);
                         }
                     } else score += 10;
@@ -101,7 +161,8 @@ const uniformController = {
                         category: uniform.category,
                         icon: uniform.icon,
                         recommendedSize: bestSize.size,
-                        price: bestSize.price,
+                        sizeId: bestSize.id,
+                        price: Number(bestSize.price),
                         stock: bestSize.stock,
                         confidence: Math.min(100, bestScore)
                     });
@@ -113,26 +174,44 @@ const uniformController = {
                 recommendations: recommendations.sort((a, b) => b.confidence - a.confidence)
             });
         } catch (error) {
-            res.status(500).json({ message: "Error processing recommendations", error: error.message });
+            next(error);
         }
     },
 
-    // Admin: Update stock
-    updateStock: async (req, res) => {
+    // Admin: update the stock of a single size entry.
+    // Accepts { sizeId, newStock } or the legacy { uniformId, sizeIndex, newStock }.
+    updateStock: async (req, res, next) => {
         try {
-            const { uniformId, sizeIndex, newStock } = req.body;
-            
-            const uniform = uniformsData.find(u => u.id === parseInt(uniformId));
-            if (!uniform || !uniform.sizes[sizeIndex]) {
-                return res.status(404).json({ message: "Uniform or size not found" });
+            const { sizeId, uniformId, sizeIndex, newStock } = req.body;
+
+            let size = null;
+            if (sizeId) {
+                size = await Size.findByPk(sizeId);
+            } else if (uniformId != null && Number.isInteger(sizeIndex)) {
+                const uniform = await Uniform.findOne({
+                    ...FIND_OPTIONS,
+                    where: { id: uniformId }
+                });
+                if (uniform) {
+                    size = uniform.sizes.find((_, index) => index === sizeIndex) || null;
+                    if (size) size = await Size.findByPk(size.id);
+                }
             }
 
-            uniform.sizes[sizeIndex].stock = parseInt(newStock);
-            
-            // In production, you'd save to DB here
-            res.json({ message: "Stock updated successfully", uniform });
+            if (!size) {
+                return res.status(404).json({ message: 'Uniform or size not found' });
+            }
+
+            size.stock = newStock;
+            await size.save();
+
+            const uniform = await Uniform.findOne({
+                ...FIND_OPTIONS,
+                where: { id: size.UniformId }
+            });
+            res.json({ message: 'Stock updated successfully', uniform: serializeUniform(uniform) });
         } catch (error) {
-            res.status(500).json({ message: "Error updating stock", error: error.message });
+            next(error);
         }
     }
 };
