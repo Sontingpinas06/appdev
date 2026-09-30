@@ -13,6 +13,10 @@
     "check:payments": "node scripts/check-payments.js",
     "check:scan": "node scripts/check-scan.js",
     "check:security": "node scripts/check-security.js",
+    "check:migrations": "node scripts/check-migrations.js",
+    "migrate": "sequelize-cli db:migrate",
+    "migrate:status": "sequelize-cli db:migrate:status",
+    "migrate:undo": "sequelize-cli db:migrate:undo",
     "reset:stock": "node scripts/reset-stock.js"
   },
   "engines": {
@@ -31,6 +35,7 @@
     "pg": "^8.12.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.3",
+    "sequelize-cli": "^6.6.5",
     "zod": "^4.6.5"
   }
 }

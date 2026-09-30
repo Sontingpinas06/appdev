@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+const fs = require('fs');
 
 const env = require('./config/env');
 const { sequelize, User, Uniform, Size } = require('./models');
@@ -62,6 +64,17 @@ app.use('/api/payments', paymentRoutes);
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
 });
+
+// Built client (Docker/production): serve the SPA when client/dist is present.
+// Local dev runs Vite on :5173, so this only kicks in after a build.
+const clientDist = path.join(__dirname, '..', 'client', 'dist');
+if (fs.existsSync(path.join(clientDist, 'index.html'))) {
+    app.use(express.static(clientDist));
+    // SPA fallback for app routes; /api falls through to the JSON 404 below.
+    app.get(/^\/(?!api\/).*/, (req, res) => {
+        res.sendFile(path.join(clientDist, 'index.html'));
+    });
+}
 
 // 404
 app.use((req, res) => {
@@ -132,9 +145,10 @@ async function seedUniforms() {
 }
 
 /**
- * Minimal column shim until Sequelize migrations land (Phase 0/7): sync()
- * creates tables but never alters existing ones, so columns added to already
- * -created tables need an idempotent statement here.
+ * Minimal column shim for databases created before the initial migration:
+ * sync() creates tables but never alters existing ones, and older dev
+ * databases may predate Orders.paymentMethod. The migration covers fresh
+ * installs; this only keeps legacy dev databases working under DB_SYNC.
  */
 async function ensureSchema() {
     if (sequelize.getDialect() === 'postgres') {
@@ -160,7 +174,7 @@ async function start() {
         if (env.dbSync) {
             await sequelize.sync();
             await ensureSchema();
-            console.log('Schema synced (DB_SYNC=true - replace with migrations before production)');
+            console.log('Schema synced (DB_SYNC=true dev shortcut; production runs npm run migrate)');
         }
 
         await seedUniforms();

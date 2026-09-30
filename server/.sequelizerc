@@ -1,0 +1,12 @@
+const path = require('path');
+
+/**
+ * sequelize-cli locations. All paths resolve from the working directory, and
+ * the npm scripts always run from server/.
+ */
+module.exports = {
+    config: path.resolve('config', 'sequelize-cli.js'),
+    'models-path': path.resolve('models'),
+    'migrations-path': path.resolve('migrations'),
+    'seeders-path': path.resolve('seeders')
+};

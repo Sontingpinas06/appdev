@@ -1,0 +1,11 @@
+.git
+.github
+**/node_modules
+client/dist
+server/.env
+.env
+prototype
+**/*.log
+**/test-results
+**/playwright-report
+docker-compose.yml

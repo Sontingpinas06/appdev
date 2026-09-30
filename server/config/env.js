@@ -160,7 +160,8 @@ module.exports = {
         password: adminPassword
     },
 
-    // Dev-only schema sync until Sequelize migrations land (Phase 0/7).
+    // Dev shortcut: create tables at boot. Production keeps this false and
+    // runs `npm run migrate` (server/migrations/) instead.
     dbSync: (process.env.DB_SYNC ?? (!isProduction ? 'true' : 'false')) === 'true',
 
     payments: {

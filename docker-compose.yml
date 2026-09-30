@@ -1,0 +1,49 @@
+# Full stack in two containers: the API serves the built SPA itself, so one
+# port (5000) is the whole app.
+#
+#   docker compose up --build
+#
+# Override any value in a root .env (compose reads it automatically) before
+# exposing this beyond localhost - especially JWT_SECRET, JWT_REFRESH_SECRET
+# and ADMIN_PASSWORD.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: uniguide
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d uniguide']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    build: .
+    ports:
+      - '5000:5000'
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/uniguide
+      # Production fail-fast requires these; change them before going live.
+      JWT_SECRET: ${JWT_SECRET:-local-docker-access-secret-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-docker-refresh-secret-change-me}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-DockerAdmin123!}
+      # Nothing proxies to the app inside compose (set TRUST_PROXY=1 behind
+      # nginx/Cloudflare and point CLIENT_ORIGINS/PUBLIC_URL at your domain).
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      CLIENT_ORIGINS: ${CLIENT_ORIGINS:-http://localhost:5000}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:5000}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-sandbox}
+      # Migrations own the schema; they run in the container's CMD.
+      DB_SYNC: 'false'
+
+volumes:
+  pgdata:

@@ -175,6 +175,13 @@ function batteryEnv() {
 // Battery B - HTTP hardening against the running server
 // ---------------------------------------------------------------------------
 function readClientOrigins() {
+    // CI and containerised runs configure this via the environment; local dev
+    // usually keeps it in server/.env.
+    if (process.env.CLIENT_ORIGINS) {
+        return process.env.CLIENT_ORIGINS.split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean);
+    }
     try {
         const line = readFileSync(path.join(SERVER_DIR, '.env'), 'utf8')
             .split(/\r?\n/)
