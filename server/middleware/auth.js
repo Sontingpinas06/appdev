@@ -16,7 +16,7 @@ async function requireAuth(req, res, next) {
 
     let payload;
     try {
-        payload = jwt.verify(token, env.jwt.secret);
+        payload = jwt.verify(token, env.jwt.secret, { algorithms: ['HS256'] });
     } catch {
         return res.status(401).json({ message: 'Invalid or expired token' });
     }

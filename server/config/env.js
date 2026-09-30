@@ -52,6 +52,50 @@ if (isProduction && PAYMENT_PROVIDER === 'sandbox' && !process.env.PAYMENT_WEBHO
 }
 
 // ---------------------------------------------------------------------------
+// Transport / CORS
+// ---------------------------------------------------------------------------
+// Raw value is kept so "unset" can be distinguished from an explicit "false".
+const TRUST_PROXY_RAW = process.env.TRUST_PROXY;
+let trustProxy = false;
+if (TRUST_PROXY_RAW !== undefined && TRUST_PROXY_RAW !== '') {
+    if (TRUST_PROXY_RAW === 'true') trustProxy = true;
+    else if (TRUST_PROXY_RAW === 'false') trustProxy = false;
+    else if (/^\d+$/.test(TRUST_PROXY_RAW)) trustProxy = Number(TRUST_PROXY_RAW);
+    else trustProxy = TRUST_PROXY_RAW; // 'loopback' or a CIDR list, passed to Express
+}
+
+// Failing here beats silently rate-limiting every user under the proxy's IP.
+if (isProduction && (TRUST_PROXY_RAW === undefined || TRUST_PROXY_RAW === '')) {
+    throw new Error(
+        'TRUST_PROXY must be set in production: TRUST_PROXY=1 behind a reverse proxy, or TRUST_PROXY=false when the API is directly exposed'
+    );
+}
+
+const clientOrigins = (process.env.CLIENT_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+// With no allow-list, CORS reflects any origin *with credentials* - never ok
+// in production. Set CLIENT_ORIGINS explicitly (same-origin apps included).
+if (isProduction && clientOrigins.length === 0) {
+    throw new Error(
+        'CLIENT_ORIGINS must list the browser origin(s) in production, e.g. CLIENT_ORIGINS=https://app.example'
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Rate limits (per IP; MemoryStore, so one process per instance)
+// ---------------------------------------------------------------------------
+function positiveInt(name, fallback) {
+    const value = Number(process.env[name] ?? fallback);
+    if (!Number.isInteger(value) || value < 1) {
+        throw new Error(`${name} must be a positive integer`);
+    }
+    return value;
+}
+
+// ---------------------------------------------------------------------------
 // Photo-scan sizing
 // ---------------------------------------------------------------------------
 const SCAN_PROVIDER = process.env.SCAN_PROVIDER || 'auto'; // auto | sandbox
@@ -68,10 +112,22 @@ module.exports = {
     nodeEnv: NODE_ENV,
     isProduction,
     port: Number(process.env.PORT || 5000),
-    clientOrigins: (process.env.CLIENT_ORIGINS || '')
-        .split(',')
-        .map((origin) => origin.trim())
-        .filter(Boolean),
+    clientOrigins,
+    trustProxy,
+
+    rateLimits: {
+        // Global per-IP cap across every /api route (15-minute window).
+        // Sized for several full gate runs per window; still a hard brake.
+        api: positiveInt('API_RATE_LIMIT', 2000),
+        // register + login attempts per IP (15-minute window). bcrypt makes
+        // each attempt expensive, so this guards against credential flooding
+        // without ever locking out a real student.
+        auth: positiveInt('AUTH_RATE_LIMIT', 150),
+        // checkout attempts per IP (hourly window - pending orders hold stock).
+        orders: positiveInt('ORDER_RATE_LIMIT', 100),
+        // photo scans per IP (15-minute window).
+        scan: positiveInt('SCAN_RATE_LIMIT', 60)
+    },
 
     database: {
         url: process.env.DATABASE_URL || null,
@@ -133,8 +189,6 @@ module.exports = {
         // exists, so auto resolves to it (a later phase adds real providers).
         provider: SCAN_PROVIDER,
         // Decoded image size cap before a request is refused with 413.
-        maxBytes: scanMaxBytes,
-        // Requests allowed per IP per 15-minute window.
-        rateLimit: Number(process.env.SCAN_RATE_LIMIT || 60)
+        maxBytes: scanMaxBytes
     }
 };

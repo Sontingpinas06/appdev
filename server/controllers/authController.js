@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { z } = require('zod');
 const { Op } = require('sequelize');
 const env = require('../config/env');
@@ -10,7 +11,12 @@ const { User } = require('../models');
 const registerSchema = z.object({
     name: z.string().trim().min(2, 'Name is required').max(80),
     email: z.string().trim().toLowerCase().email('Enter a valid email').max(120),
-    password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+    password: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .max(128)
+        .regex(/[A-Za-z]/, 'Password must include at least one letter')
+        .regex(/\d/, 'Password must include at least one number'),
     studentId: z
         .string()
         .trim()
@@ -31,6 +37,15 @@ const loginSchema = z.object({
 // ---------------------------------------------------------------------------
 // Tokens
 // ---------------------------------------------------------------------------
+const JWT_ALGORITHM = 'HS256';
+
+/**
+ * Precomputed cost-12 hash of a throwaway string (never a real password).
+ * Compared when an account does not exist so unknown-user and wrong-password
+ * logins burn the same bcrypt time and cannot be told apart by a stopwatch.
+ */
+const DUMMY_PASSWORD_HASH = '$2b$12$EEYZVZ4Zwf4f.hUZ0bMR6OVFbC/4wbuB2Hr1.MgdGWJVQYZnWZViq';
+
 function signAccessToken(user) {
     return jwt.sign({ sub: user.id, role: user.role, type: 'access' }, env.jwt.secret, {
         expiresIn: env.jwt.accessTtl
@@ -105,7 +120,12 @@ const authController = {
             // Constant message: never reveal which field was wrong.
             const invalid = () => res.status(401).json({ message: 'Invalid credentials' });
 
-            if (!user) return invalid();
+            if (!user) {
+                // Same bcrypt work as a real compare: no timing oracle for
+                // "does this account exist?".
+                await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+                return invalid();
+            }
             if (!(await user.verifyPassword(password))) return invalid();
 
             return res.json(issueSession(res, user));
@@ -121,7 +141,7 @@ const authController = {
 
             let payload;
             try {
-                payload = jwt.verify(token, env.jwt.refreshSecret);
+                payload = jwt.verify(token, env.jwt.refreshSecret, { algorithms: [JWT_ALGORITHM] });
             } catch {
                 return res.status(401).json({ message: 'No active session' });
             }
@@ -144,7 +164,9 @@ const authController = {
             const token = req.cookies?.[env.cookie.name];
             if (token) {
                 try {
-                    const payload = jwt.verify(token, env.jwt.refreshSecret);
+                    const payload = jwt.verify(token, env.jwt.refreshSecret, {
+                        algorithms: [JWT_ALGORITHM]
+                    });
                     if (payload.type === 'refresh') {
                         const user = await User.scope('withSecrets').findByPk(payload.sub);
                         // Invalidate every refresh token already issued.

@@ -48,8 +48,9 @@ overwritten).
 | server | `npm run check:orders` | Checkout/orders acceptance gate (21 checks)          |
 | server | `npm run check:payments` | Payments acceptance gate (41 checks: sessions, webhook signatures, sandbox) |
 | server | `npm run check:scan` | Photo-scan acceptance gate (23 checks: validation, determinism, pipeline) |
+| server | `npm run check:security` | Security gate (49 checks: env fail-fasts, headers, authz/IDOR, CORS, limiter trip-proof) |
 | server | `npm run check:parity` | Asserts the API sizing algorithm still matches the legacy prototype's |
-| server | `npm run reset:stock` | Restores catalogue stock to the seed values (test runs place real orders) |
+| server | `npm run reset:stock` | Restores catalogue stock to the seed values and cancels leftover pending orders (test runs place real orders) |
 
 ## API
 
@@ -76,7 +77,9 @@ overwritten).
 
 Auth model: 15-minute access token in memory on the client, 7-day refresh token
 in an httpOnly cookie scoped to `/api/auth`, `tokenVersion` on the user row for
-revocation, bcrypt (12 rounds), 30 credential attempts / 15 min / IP.
+revocation, bcrypt (12 rounds), HS256 pinned on verify, a password policy
+(min 8 chars, letter + number) and a timing-equalized login (an unknown account
+does the same bcrypt work as a wrong password).
 
 Orders: the cart lives client-side (localStorage, `bcpCart`); checkout sends the
 whole cart to the server, which prices it from the database, reserves the stock
@@ -107,6 +110,18 @@ photo → same numbers) and flags them `simulated: true`; the UI shows that as a
 same interface: add `gemini.js`/`openai.js` with an API-key env var, register
 it in `scanning/index.js`, and both `auto` and the badge flip automatically.
 
+Security (Phase 6): every layer is rate limited per IP (global 2000/15 min on
+`/api`, credentials 150/15 min, scans 60/15 min, checkout 100/h — in-memory, so
+one process per instance), helmet sets the headers, `X-Powered-By` is off, and
+CORS only reflects an allow-list. Behind a reverse proxy set `TRUST_PROXY=1`
+so limits see real client IPs. Production **fails fast on boot** until
+`JWT_SECRET`/`JWT_REFRESH_SECRET` are set and distinct, `TRUST_PROXY` and
+`CLIENT_ORIGINS` are explicit, and the default `ADMIN_PASSWORD` is gone.
+Authorization is enforced with owner-or-admin checks (other users get 404, not
+403, so IDs can't be probed), register strips injected `role`, and JWTs reject
+`alg=none`/wrong-algorithm tokens. `npm run check:security` proves all of it,
+including booting a throwaway server to show each limiter actually 429ing.
+
 ## Status
 
 Production plan phases:
@@ -116,8 +131,7 @@ Production plan phases:
 - [x] **Phase 3** — Catalogue in PostgreSQL, cart, checkout, order history, admin panel (inventory + order workflow)
 - [x] **Phase 4** — Payments: cash on pickup or online via PayMongo Hosted Checkout (sandbox gateway fallback), signed webhooks, payment history in orders/admin
 - [x] **Phase 5** — Photo-scan sizing: server-side scan endpoint with a provider seam, validation, determinism, rate limiting *(sandbox provider for now — a real vision API plugs into `server/scanning/` when a key is available)*
-- [ ] Phase 5 — Real photo-scan AI sizing (currently simulated)
-- [ ] Phase 6 — Test coverage, security hardening, performance
+- [x] **Phase 6** — Tests & security: `check:security` gate (env fail-fasts, headers, authz/IDOR, CORS, limiter trip-proof), layered rate limits, production boot requirements, password policy, timing-equalized login, honest `reset:stock`
 - [ ] Phase 0/7 — Sequelize migrations (tables are created with `DB_SYNC` today), Docker/CI deployment
 
 Still to port from `prototype/admin.html`: the dashboard charts, bulk pricing

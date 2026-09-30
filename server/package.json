@@ -12,6 +12,7 @@
     "check:orders": "node scripts/check-orders.js",
     "check:payments": "node scripts/check-payments.js",
     "check:scan": "node scripts/check-scan.js",
+    "check:security": "node scripts/check-security.js",
     "reset:stock": "node scripts/reset-stock.js"
   },
   "engines": {

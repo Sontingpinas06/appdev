@@ -132,12 +132,29 @@ async function call(path, { method = 'GET', body, token, cookie, raw } = {}) {
     check('admin login -> 200', adminLogin.status === 200, String(adminLogin.status));
     check('admin role is admin', adminLogin.body?.user?.role === 'admin', String(adminLogin.body?.user?.role));
 
-    const asAdmin = await call('/api/uniforms/stock', {
-        method: 'PATCH',
-        token: adminLogin.body?.accessToken,
-        body: { uniformId: 1, sizeIndex: 0, newStock: 25 }
-    });
-    check('PATCH /stock with admin token -> 200', asAdmin.status === 200, String(asAdmin.status));
+    // Read-modify-write: a hardcoded number here would silently "return"
+    // stock that pending orders are holding and mask real decrements.
+    const catalogue = await call('/api/uniforms', { method: 'GET' });
+    const stockBefore = catalogue.body?.[0]?.sizes?.[0]?.stock;
+    const asAdmin =
+        typeof stockBefore === 'number'
+            ? await call('/api/uniforms/stock', {
+                  method: 'PATCH',
+                  token: adminLogin.body?.accessToken,
+                  body: { uniformId: 1, sizeIndex: 0, newStock: stockBefore + 1 }
+              })
+            : { status: 0 };
+    check('PATCH /stock with admin token -> 200', asAdmin.status === 200,
+        `${asAdmin.status} (stockBefore=${stockBefore})`);
+
+    // Put the original number back so the gate is stock-neutral.
+    if (typeof stockBefore === 'number') {
+        await call('/api/uniforms/stock', {
+            method: 'PATCH',
+            token: adminLogin.body?.accessToken,
+            body: { uniformId: 1, sizeIndex: 0, newStock: stockBefore }
+        });
+    }
 
     // 10. Input hardening
     const malformed = await fetch(`${BASE}/api/auth/login`, {

@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
 
 const env = require('./config/env');
 const { sequelize, User, Uniform, Size } = require('./models');
@@ -18,6 +19,22 @@ const captureRawBody = (req, _res, buf) => {
     req.rawBody = Buffer.from(buf);
 };
 
+// X-Powered-By advertises the stack for no benefit.
+app.disable('x-powered-by');
+// Behind a reverse proxy Express must trust it (TRUST_PROXY=1) to see the real
+// client IP - rate limiting and any IP-based logic depend on req.ip.
+app.set('trust proxy', env.trustProxy);
+
+// Global per-IP budget across all API routes. Mounted before the body parsers
+// so floods are cut off before payloads are buffered.
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: env.rateLimits.api,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please slow down.' }
+});
+
 // Middleware
 app.use(helmet());
 app.use(
@@ -26,6 +43,7 @@ app.use(
         credentials: true
     })
 );
+app.use('/api', apiLimiter);
 // The photo-scan endpoint carries a base64 image, so it gets its own parser
 // with a larger cap ahead of the global 100kb guard; express.json skips
 // bodies that were already parsed.

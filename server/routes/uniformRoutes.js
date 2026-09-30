@@ -10,7 +10,7 @@ const { validate } = require('../middleware/validate');
 // provider behind this seam can never be flooded.
 const scanLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: env.scan.rateLimit,
+    limit: env.rateLimits.scan,
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: 'Too many scan requests. Please try again later.' }
