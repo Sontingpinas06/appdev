@@ -42,11 +42,12 @@ overwritten).
 | client | `npm run dev`       | Vite dev server with `/api` proxy                        |
 | client | `npm run typecheck` | TypeScript, no emit                                      |
 | client | `npm run build`     | Typecheck + production build to `client/dist`            |
-| client | `npm run smoke`     | Playwright end-to-end smoke (sizing, catalog, auth, cart, checkout, payment, admin) |
+| client | `npm run smoke`     | Playwright end-to-end smoke (sizing, photo scan, catalog, auth, cart, checkout, payment, admin) |
 | server | `npm run dev`       | API with auto-reload                                     |
 | server | `npm run check:auth` | Auth/roles acceptance gate (20 checks)                  |
 | server | `npm run check:orders` | Checkout/orders acceptance gate (21 checks)          |
 | server | `npm run check:payments` | Payments acceptance gate (41 checks: sessions, webhook signatures, sandbox) |
+| server | `npm run check:scan` | Photo-scan acceptance gate (23 checks: validation, determinism, pipeline) |
 | server | `npm run check:parity` | Asserts the API sizing algorithm still matches the legacy prototype's |
 | server | `npm run reset:stock` | Restores catalogue stock to the seed values (test runs place real orders) |
 
@@ -56,6 +57,7 @@ overwritten).
 | ------ | --------------------------------- | -------------------------------------------------- |
 | GET    | `/api/uniforms`                   | All uniforms, `?gender=`, `?category=`, `?search=`  |
 | POST   | `/api/uniforms/recommendations`   | Size recommendations from measurements              |
+| POST   | `/api/uniforms/scan`              | Extract measurements from a photo (rate limited; `simulated` flag says whether numbers are real) |
 | PATCH  | `/api/uniforms/stock`             | Update a size's stock — `{sizeId,newStock}` (**admin only**) |
 | POST   | `/api/orders`                     | Checkout: validates + reserves stock in a transaction (auth) |
 | GET    | `/api/orders`                     | Own order history; admins may pass `?scope=all`      |
@@ -95,6 +97,16 @@ livemode mismatches, and settled through the same pipeline the sandbox uses.
 PayMongo dashboard; see `server/.env.example` for every knob. Note: cancelling
 a paid order restores stock but does not issue a refund (no refund flow yet).
 
+Sizing: `POST /api/uniforms/scan` takes a base64 photo (JPEG/PNG/WebP — MIME
+whitelist, base64 hygiene, magic-byte and `SCAN_MAX_BYTES` size checks, 60
+requests/IP/15 min) and returns measurements through the provider registry in
+`server/scanning/`. Today `SCAN_PROVIDER=auto` resolves to the sandbox, which
+derives **deterministic** measurements from the image hash plus gender (same
+photo → same numbers) and flags them `simulated: true`; the UI shows that as a
+"Simulated scan" badge. Wiring a real AI provider later is one file behind the
+same interface: add `gemini.js`/`openai.js` with an API-key env var, register
+it in `scanning/index.js`, and both `auto` and the badge flip automatically.
+
 ## Status
 
 Production plan phases:
@@ -103,6 +115,7 @@ Production plan phases:
 - [x] **Phase 2** — Auth & roles: registration/login/refresh/logout, bcrypt, JWT, rate limiting, admin middleware, guarded routes, profile menu
 - [x] **Phase 3** — Catalogue in PostgreSQL, cart, checkout, order history, admin panel (inventory + order workflow)
 - [x] **Phase 4** — Payments: cash on pickup or online via PayMongo Hosted Checkout (sandbox gateway fallback), signed webhooks, payment history in orders/admin
+- [x] **Phase 5** — Photo-scan sizing: server-side scan endpoint with a provider seam, validation, determinism, rate limiting *(sandbox provider for now — a real vision API plugs into `server/scanning/` when a key is available)*
 - [ ] Phase 5 — Real photo-scan AI sizing (currently simulated)
 - [ ] Phase 6 — Test coverage, security hardening, performance
 - [ ] Phase 0/7 — Sequelize migrations (tables are created with `DB_SYNC` today), Docker/CI deployment

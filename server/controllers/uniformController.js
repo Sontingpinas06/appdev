@@ -7,6 +7,7 @@
 const { Op } = require('sequelize');
 const { z } = require('zod');
 const { sequelize, Uniform, Size } = require('../models');
+const { runScan, ScanError } = require('../scanning/service');
 
 const stockSchema = z
     .object({
@@ -18,6 +19,14 @@ const stockSchema = z
     .refine((value) => value.sizeId != null || (value.uniformId != null && value.sizeIndex != null), {
         message: 'Provide sizeId, or uniformId together with sizeIndex'
     });
+
+const scanSchema = z.object({
+    image: z.string().min(1, 'A photo is required').max(9_000_000, 'Image is too large'),
+    gender: z.enum(['Male', 'Female'], {
+        errorMap: () => ({ message: 'Gender must be Male or Female' })
+    }),
+    studentName: z.string().trim().max(100).optional()
+});
 
 const SIZE_ORDER = [{ model: Size, as: 'sizes' }, 'id', 'ASC'];
 const FIND_OPTIONS = {
@@ -49,7 +58,22 @@ function serializeUniform(uniform) {
 }
 
 const uniformController = {
-    schemas: { stock: stockSchema },
+    schemas: { stock: stockSchema, scan: scanSchema },
+
+    // POST /api/uniforms/scan - extract measurements from a photo.
+    // Public (like manual sizing) but rate limited; the response says which
+    // provider ran and whether the numbers are simulated.
+    scan: async (req, res, next) => {
+        try {
+            const result = await runScan(req.body);
+            res.json(result);
+        } catch (error) {
+            if (error instanceof ScanError) {
+                return res.status(error.status).json({ message: error.message });
+            }
+            next(error);
+        }
+    },
 
     // Get all uniforms with optional filtering
     getAllUniforms: async (req, res, next) => {

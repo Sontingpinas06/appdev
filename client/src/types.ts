@@ -55,6 +55,21 @@ export interface RecommendationResponse {
     recommendations: Recommendation[];
 }
 
+export interface ScanResult {
+    /** Which provider produced the numbers (e.g. 'sandbox'). */
+    provider: string;
+    /** True when no real AI provider is configured and numbers are simulated. */
+    simulated: boolean;
+    mimeType: string;
+    /** First 16 hex chars of the image hash; identical photos scan identically. */
+    imageHash: string;
+}
+
+export interface ScanResponse {
+    measurements: Measurements;
+    scan: ScanResult;
+}
+
 export interface AuthUser {
     id: string;
     name: string;

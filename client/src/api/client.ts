@@ -93,6 +93,18 @@ export function getRecommendations(
     });
 }
 
+/** Photo scan: server extracts measurements (sandbox or configured AI). */
+export function postScan(input: {
+    image: string;
+    gender: 'Male' | 'Female';
+    studentName?: string;
+}): Promise<import('../types').ScanResponse> {
+    return request<import('../types').ScanResponse>('/uniforms/scan', {
+        method: 'POST',
+        body: JSON.stringify(input)
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------

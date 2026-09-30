@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
-import { getRecommendations } from '../api/client';
+import { getRecommendations, postScan } from '../api/client';
 import { showToast } from '../store/toast';
-import type { Measurements, RecommendationResponse } from '../types';
+import type { Measurements, RecommendationResponse, ScanResult } from '../types';
 
 type Method = 'manual' | 'photo';
+
+/** Downscales to <=1024px JPEG and returns a data URL the API accepts. */
+async function prepareImage(url: string): Promise<string> {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    const scale = Math.min(1, 1024 / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.85);
+}
 
 export default function Sizing() {
     const [method, setMethod] = useState<Method>('manual');
@@ -13,6 +26,7 @@ export default function Sizing() {
     const [processing, setProcessing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState<RecommendationResponse | null>(null);
+    const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
     const manualFormRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +131,8 @@ export default function Sizing() {
     function handleManualSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
+        // Manual numbers didn't come from a photo: drop any scan badge.
+        setScanResult(null);
 
         void requestRecommendations({
             studentName: String(form.get('studentName') ?? ''),
@@ -130,33 +146,43 @@ export default function Sizing() {
         });
     }
 
-    function handlePhotoSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handlePhotoSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (!photo || processing) return;
+
         const form = new FormData(event.currentTarget);
         const gender = form.get('photoGender') as 'Male' | 'Female';
+        const studentName = String(form.get('photoStudentName') ?? '');
 
         setProcessing(true);
-
-        // AI extraction is still simulated (Phase 5 replaces this).
-        window.setTimeout(() => {
+        try {
+            const image = await prepareImage(photo);
+            const data = await postScan({ image, gender, studentName });
+            setScanResult(data.scan);
+            showToast(
+                data.scan.simulated
+                    ? 'Scan complete - measurements are simulated (sandbox provider).'
+                    : 'AI analysis complete! Measurements extracted successfully.',
+                'success'
+            );
+            await requestRecommendations(data.measurements);
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Photo analysis failed';
+            showToast(
+                error instanceof DOMException
+                    ? 'Could not read the photo. Please re-select it.'
+                    : message,
+                'error'
+            );
+        } finally {
             setProcessing(false);
-            showToast('AI analysis complete! Measurements extracted successfully.', 'success');
-
-            void requestRecommendations({
-                studentName: String(form.get('photoStudentName') ?? ''),
-                studentId: '',
-                gender,
-                height: gender === 'Male' ? 170 + Math.random() * 10 : 160 + Math.random() * 10,
-                weight: gender === 'Male' ? 60 + Math.random() * 15 : 50 + Math.random() * 15,
-                chest: gender === 'Male' ? 85 + Math.random() * 10 : 80 + Math.random() * 10,
-                waist: gender === 'Male' ? 75 + Math.random() * 10 : 65 + Math.random() * 10,
-                method: 'photo_scan'
-            });
-        }, 2000);
+        }
     }
 
     function resetSizing() {
         setResult(null);
+        setScanResult(null);
         setProcessing(false);
         removePhoto();
         manualFormRef.current?.reset();
@@ -379,11 +405,11 @@ export default function Sizing() {
 
                                 <div className="ai-processing" id="aiProcessing" style={{ display: processing ? 'block' : 'none' }}>
                                     <div className="spinner"></div>
-                                    <p>AI is analyzing your photo...</p>
+                                    <p>Analyzing your photo…</p>
                                 </div>
 
                                 <button type="submit" className="btn btn-primary btn-large" disabled={processing || submitting}>
-                                    <i className="fas fa-brain"></i> Analyze with AI
+                                    <i className="fas fa-brain"></i> Analyze Photo
                                 </button>
                             </form>
                         </div>
@@ -395,6 +421,19 @@ export default function Sizing() {
                             <div className="results-header">
                                 <h3>
                                     <i className="fas fa-check-circle"></i> Your Size Recommendations
+                                    {scanResult && (
+                                        <span
+                                            className={`scan-chip${scanResult.simulated ? ' simulated' : ''}`}
+                                            title={`Provider: ${scanResult.provider} · image ${scanResult.imageHash}`}
+                                        >
+                                            <i
+                                                className={`fas ${scanResult.simulated ? 'fa-flask' : 'fa-brain'}`}
+                                            ></i>{' '}
+                                            {scanResult.simulated
+                                                ? `Simulated scan · ${scanResult.provider}`
+                                                : `AI scan · ${scanResult.provider}`}
+                                        </span>
+                                    )}
                                 </h3>
                                 <button className="btn btn-secondary btn-small" onClick={resetSizing}>
                                     <i className="fas fa-redo"></i> Start Over

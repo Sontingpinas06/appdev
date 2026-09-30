@@ -14,6 +14,10 @@ const { getProvider } = require('./payments');
 
 const app = express();
 
+const captureRawBody = (req, _res, buf) => {
+    req.rawBody = Buffer.from(buf);
+};
+
 // Middleware
 app.use(helmet());
 app.use(
@@ -22,15 +26,12 @@ app.use(
         credentials: true
     })
 );
+// The photo-scan endpoint carries a base64 image, so it gets its own parser
+// with a larger cap ahead of the global 100kb guard; express.json skips
+// bodies that were already parsed.
+app.use('/api/uniforms/scan', express.json({ limit: '8mb', verify: captureRawBody }));
 // rawBody must be the original bytes: webhook signatures are verified over it.
-app.use(
-    express.json({
-        limit: '100kb',
-        verify: (req, _res, buf) => {
-            req.rawBody = Buffer.from(buf);
-        }
-    })
-);
+app.use(express.json({ limit: '100kb', verify: captureRawBody }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 

@@ -51,6 +51,19 @@ if (isProduction && PAYMENT_PROVIDER === 'sandbox' && !process.env.PAYMENT_WEBHO
     throw new Error('The sandbox provider in production requires an explicit PAYMENT_WEBHOOK_SECRET');
 }
 
+// ---------------------------------------------------------------------------
+// Photo-scan sizing
+// ---------------------------------------------------------------------------
+const SCAN_PROVIDER = process.env.SCAN_PROVIDER || 'auto'; // auto | sandbox
+if (!['auto', 'sandbox'].includes(SCAN_PROVIDER)) {
+    throw new Error('SCAN_PROVIDER must be one of: auto, sandbox');
+}
+
+const scanMaxBytes = Number(process.env.SCAN_MAX_BYTES || 5 * 1024 * 1024);
+if (!Number.isFinite(scanMaxBytes) || scanMaxBytes < 1024) {
+    throw new Error('SCAN_MAX_BYTES must be a number >= 1024');
+}
+
 module.exports = {
     nodeEnv: NODE_ENV,
     isProduction,
@@ -113,5 +126,15 @@ module.exports = {
             .filter(Boolean),
         // Public origin used for hosted-checkout return URLs.
         publicUrl: process.env.PUBLIC_URL || ''
+    },
+
+    scan: {
+        // 'auto' prefers a configured AI provider; today only the sandbox
+        // exists, so auto resolves to it (a later phase adds real providers).
+        provider: SCAN_PROVIDER,
+        // Decoded image size cap before a request is refused with 413.
+        maxBytes: scanMaxBytes,
+        // Requests allowed per IP per 15-minute window.
+        rateLimit: Number(process.env.SCAN_RATE_LIMIT || 60)
     }
 };

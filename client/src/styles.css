@@ -2939,3 +2939,26 @@ button.size-option {
     gap: 0.75rem;
     margin-top: 1.5rem;
 }
+
+/* ===========================================================================
+ * PHASE 5 - Photo-scan sizing
+ * ======================================================================== */
+
+/* Source badge next to the results heading: which provider produced the
+   numbers, and whether they are simulated. */
+.scan-chip {
+    display: inline-block;
+    margin-left: 0.75rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    vertical-align: middle;
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.scan-chip.simulated {
+    background: #fef3c7;
+    color: #92400e;
+}

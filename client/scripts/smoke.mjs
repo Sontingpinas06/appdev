@@ -1,11 +1,11 @@
 /**
- * Smoke test for the React app (Phases 1-4).
+ * Smoke test for the React app (Phases 1-5).
  * Drives the real app with the system Chrome install (no bundled browser).
  *
  *   npm run smoke
  */
 import { chromium } from 'playwright';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -52,6 +52,29 @@ try {
     check('sizing: top pick is Polo Shirt - White', first?.includes('Polo Shirt - White'), String(first));
     check('sizing: confidence shown', /Confidence:\s*\d+%/.test(confidence || ''), String(confidence));
     await page.screenshot({ path: join(shots, 'sizing-results.png') });
+
+    // --- Photo scan: server-side pipeline (sandbox provider) ---------------
+    const scanFixture = join(shots, 'scan-fixture.png');
+    writeFileSync(
+        scanFixture,
+        Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            'base64'
+        )
+    );
+    await page.goto(`${BASE}/sizing`, { waitUntil: 'networkidle' });
+    await page.click('#photo-btn');
+    await page.setInputFiles('#photo-form input[type="file"]', scanFixture);
+    await page.waitForSelector('#photoScanForm', { state: 'visible', timeout: 5000 });
+    await page.fill('#photoStudentName', 'Scan Tester');
+    await page.selectOption('#photoGender', 'Male');
+    await page.click('#photoScanForm button[type="submit"]');
+    await page.waitForSelector('#sizing-results', { timeout: 15000 });
+    const scanChip = await page.textContent('.results-header .scan-chip');
+    check('scan: results carry the simulated-source badge', /simulated/i.test(scanChip || ''), String(scanChip));
+    const scanCards = await page.$$eval('.recommendation-card', (els) => els.length);
+    check('scan: recommendations from scanned measurements', scanCards === 5, `got ${scanCards}`);
+    await page.screenshot({ path: join(shots, 'photo-scan.png') });
 
     // --- Catalog: load, filter, search, detail modal ----------------------
     await page.goto(`${BASE}/catalog`, { waitUntil: 'networkidle' });
