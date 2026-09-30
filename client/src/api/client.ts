@@ -135,11 +135,16 @@ export function postLogout(): Promise<{ message: string }> {
 
 export function postOrder(
     items: { uniformId: number; sizeId: number; quantity: number }[],
-    notes?: string
+    notes?: string,
+    paymentMethod: import('../types').PaymentMethod = 'cash_on_pickup'
 ): Promise<{ order: import('../types').Order }> {
     return request<{ order: import('../types').Order }>('/orders', {
         method: 'POST',
-        body: JSON.stringify({ items, ...(notes ? { notes } : {}) })
+        body: JSON.stringify({
+            items,
+            paymentMethod,
+            ...(notes ? { notes } : {})
+        })
     });
 }
 
@@ -170,5 +175,47 @@ export function patchStock(body: {
     return request<{ message: string }>('/uniforms/stock', {
         method: 'PATCH',
         body: JSON.stringify(body)
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Payments
+// ---------------------------------------------------------------------------
+
+/** Starts (or reuses) a checkout session for an online order. */
+export function postPaymentCheckout(orderId: string): Promise<{
+    checkoutUrl: string;
+    payment: import('../types').Payment;
+    reused: boolean;
+}> {
+    return request<{ checkoutUrl: string; payment: import('../types').Payment; reused: boolean }>(
+        '/payments/checkout',
+        {
+            method: 'POST',
+            body: JSON.stringify({ orderId })
+        }
+    );
+}
+
+/** Latest payment for an order (used by the result-page poller). */
+export function getPayment(orderId: string): Promise<{
+    payment: import('../types').Payment | null;
+    order: { id: string; orderNumber: string; status: import('../types').OrderStatus; totalAmount: number };
+}> {
+    return request(`/payments/${orderId}`);
+}
+
+/** Sandbox only: simulate the gateway redirect-back after paying. */
+export function postSandboxConfirm(
+    orderId: string,
+    result: 'success' | 'declined',
+    method?: string
+): Promise<{
+    payment: import('../types').Payment;
+    orderStatus: import('../types').OrderStatus;
+}> {
+    return request(`/payments/sandbox/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ orderId, result, ...(method ? { method } : {}) })
     });
 }

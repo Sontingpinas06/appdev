@@ -9,6 +9,8 @@ const { sequelize, User, Uniform, Size } = require('./models');
 const uniformRoutes = require('./routes/uniformRoutes');
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const { getProvider } = require('./payments');
 
 const app = express();
 
@@ -20,7 +22,15 @@ app.use(
         credentials: true
     })
 );
-app.use(express.json({ limit: '100kb' }));
+// rawBody must be the original bytes: webhook signatures are verified over it.
+app.use(
+    express.json({
+        limit: '100kb',
+        verify: (req, _res, buf) => {
+            req.rawBody = Buffer.from(buf);
+        }
+    })
+);
 app.use(cookieParser());
 app.use(morgan('dev'));
 
@@ -28,6 +38,7 @@ app.use(morgan('dev'));
 app.use('/api/auth', authRoutes);
 app.use('/api/uniforms', uniformRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
@@ -101,6 +112,27 @@ async function seedUniforms() {
     console.log(`Seeded ${catalogue.length} uniforms`);
 }
 
+/**
+ * Minimal column shim until Sequelize migrations land (Phase 0/7): sync()
+ * creates tables but never alters existing ones, so columns added to already
+ * -created tables need an idempotent statement here.
+ */
+async function ensureSchema() {
+    if (sequelize.getDialect() === 'postgres') {
+        await sequelize.query(
+            'ALTER TABLE "Orders" ADD COLUMN IF NOT EXISTS "paymentMethod" VARCHAR(255) NOT NULL DEFAULT \'cash_on_pickup\''
+        );
+    } else {
+        try {
+            await sequelize.query(
+                "ALTER TABLE Orders ADD COLUMN paymentMethod VARCHAR(255) NOT NULL DEFAULT 'cash_on_pickup'"
+            );
+        } catch (error) {
+            if (!/duplicate column/i.test(error.message)) throw error;
+        }
+    }
+}
+
 async function start() {
     try {
         await sequelize.authenticate();
@@ -108,11 +140,19 @@ async function start() {
 
         if (env.dbSync) {
             await sequelize.sync();
+            await ensureSchema();
             console.log('Schema synced (DB_SYNC=true - replace with migrations before production)');
         }
 
         await seedUniforms();
         await seedAdmin();
+
+        const provider = getProvider();
+        console.log(`Payment provider: ${provider.name}`);
+        if (provider.name === 'paymongo') {
+            const origin = env.payments.publicUrl || env.clientOrigins[0] || 'https://your-app.example';
+            console.log(`Register the webhook in PayMongo: ${origin}/api/payments/webhook`);
+        }
 
         app.listen(env.port, () => {
             console.log(`Server running on port ${env.port}`);

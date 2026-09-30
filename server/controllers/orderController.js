@@ -5,9 +5,10 @@
  */
 
 const { z } = require('zod');
-const { sequelize, Uniform, Size, Order, OrderItem, User } = require('../models');
+const { sequelize, Uniform, Size, Order, OrderItem, Payment, User } = require('../models');
 
 const ORDER_STATUSES = ['pending', 'paid', 'ready', 'completed', 'cancelled'];
+const PAYMENT_INCLUDE = { model: Payment, as: 'payments' };
 
 // ---------------------------------------------------------------------------
 // Validation schemas
@@ -23,6 +24,7 @@ const createOrderSchema = z.object({
         )
         .min(1, 'Your cart is empty')
         .max(30, 'Too many distinct items in one order'),
+    paymentMethod: z.enum(['cash_on_pickup', 'online']).default('cash_on_pickup'),
     notes: z.string().trim().max(500).optional()
 });
 
@@ -61,6 +63,25 @@ function serializeOrder(order, { withUser = false } = {}) {
     }
     plain.totalAmount = Number(plain.totalAmount);
     plain.items = (plain.items || []).map((item) => ({ ...item, price: Number(item.price) }));
+
+    // Collapse the payments collection into the latest attempt (if any).
+    const payments = plain.payments || [];
+    delete plain.payments;
+    if (payments.length > 0) {
+        const latest = payments
+            .slice()
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        plain.payment = {
+            id: latest.id,
+            provider: latest.provider,
+            status: latest.status,
+            method: latest.method,
+            amount: Number(latest.amount),
+            paidAt: latest.paidAt,
+            failureReason: latest.failureReason,
+            createdAt: latest.createdAt
+        };
+    }
     return plain;
 }
 
@@ -154,6 +175,7 @@ const orderController = {
                     orderNumber: newOrderNumber(),
                     userId: req.user.id,
                     totalAmount: Math.round(totalAmount * 100) / 100,
+                    paymentMethod: req.body.paymentMethod,
                     notes: req.body.notes || null,
                     items: itemRows
                 },
@@ -163,7 +185,7 @@ const orderController = {
             await transaction.commit();
 
             const created = await Order.findByPk(order.id, {
-                include: [{ model: OrderItem, as: 'items' }]
+                include: [{ model: OrderItem, as: 'items' }, PAYMENT_INCLUDE]
             });
             return res.status(201).json({ order: serializeOrder(created) });
         } catch (error) {
@@ -180,7 +202,7 @@ const orderController = {
                 return res.status(403).json({ message: 'Admin access required' });
             }
 
-            const include = [{ model: OrderItem, as: 'items' }];
+            const include = [{ model: OrderItem, as: 'items' }, PAYMENT_INCLUDE];
             if (wantsAll) {
                 include.push({
                     model: User,
@@ -207,6 +229,7 @@ const orderController = {
             const order = await Order.findByPk(req.params.id, {
                 include: [
                     { model: OrderItem, as: 'items' },
+                    PAYMENT_INCLUDE,
                     {
                         model: User,
                         as: 'user',
@@ -246,7 +269,7 @@ const orderController = {
             if (order.status === status) {
                 await transaction.rollback();
                 const unchanged = await Order.findByPk(req.params.id, {
-                    include: [{ model: OrderItem, as: 'items' }]
+                    include: [{ model: OrderItem, as: 'items' }, PAYMENT_INCLUDE]
                 });
                 return res.json({ order: serializeOrder(unchanged) });
             }
@@ -287,7 +310,7 @@ const orderController = {
             await transaction.commit();
 
             const updated = await Order.findByPk(order.id, {
-                include: [{ model: OrderItem, as: 'items' }]
+                include: [{ model: OrderItem, as: 'items' }, PAYMENT_INCLUDE]
             });
             res.json({ order: serializeOrder(updated) });
         } catch (error) {

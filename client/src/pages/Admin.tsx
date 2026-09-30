@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ApiError, getOrders, getUniforms, patchOrderStatus, patchStock } from '../api/client';
 import { showToast } from '../store/toast';
 import type { Order, OrderStatus, Uniform } from '../types';
-import { formatDate, STATUS_LABELS } from './Orders';
+import { formatDate, paymentSummary, STATUS_LABELS } from './Orders';
 
 type Tab = 'inventory' | 'orders';
 
@@ -297,6 +297,7 @@ export default function Admin() {
                                     <th>Student</th>
                                     <th>Items</th>
                                     <th>Total</th>
+                                    <th>Payment</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -325,6 +326,13 @@ export default function Admin() {
                                             <strong>₱{order.totalAmount.toFixed(2)}</strong>
                                         </td>
                                         <td>
+                                            <span
+                                                className={`payment-chip ${paymentSummary(order).className}`}
+                                            >
+                                                {paymentSummary(order).label}
+                                            </span>
+                                        </td>
+                                        <td>
                                             <select
                                                 className="status-select"
                                                 value={order.status}
@@ -348,7 +356,7 @@ export default function Admin() {
                                 ))}
                                 {orders.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} style={{ textAlign: 'center' }}>
+                                        <td colSpan={7} style={{ textAlign: 'center' }}>
                                             No orders yet
                                         </td>
                                     </tr>

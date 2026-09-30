@@ -42,10 +42,11 @@ overwritten).
 | client | `npm run dev`       | Vite dev server with `/api` proxy                        |
 | client | `npm run typecheck` | TypeScript, no emit                                      |
 | client | `npm run build`     | Typecheck + production build to `client/dist`            |
-| client | `npm run smoke`     | Playwright end-to-end smoke (sizing, catalog, auth, cart, checkout, admin) |
+| client | `npm run smoke`     | Playwright end-to-end smoke (sizing, catalog, auth, cart, checkout, payment, admin) |
 | server | `npm run dev`       | API with auto-reload                                     |
 | server | `npm run check:auth` | Auth/roles acceptance gate (20 checks)                  |
 | server | `npm run check:orders` | Checkout/orders acceptance gate (21 checks)          |
+| server | `npm run check:payments` | Payments acceptance gate (41 checks: sessions, webhook signatures, sandbox) |
 | server | `npm run check:parity` | Asserts the API sizing algorithm still matches the legacy prototype's |
 | server | `npm run reset:stock` | Restores catalogue stock to the seed values (test runs place real orders) |
 
@@ -60,6 +61,10 @@ overwritten).
 | GET    | `/api/orders`                     | Own order history; admins may pass `?scope=all`      |
 | GET    | `/api/orders/:id`                 | One order (owner or admin; others get 404)           |
 | PATCH  | `/api/orders/:id/status`          | Set `pending/paid/ready/completed/cancelled` (**admin only**; cancelling restores stock) |
+| POST   | `/api/payments/checkout`          | Create (or reuse) a checkout session for an online order (auth) |
+| GET    | `/api/payments/:orderId`          | Latest payment for polling (owner or admin)            |
+| POST   | `/api/payments/sandbox/confirm`   | Simulate the gateway redirect-back (**owner only**; test gateway) |
+| POST   | `/api/payments/webhook`           | Gateway callback — `Paymongo-Signature` verified over the raw body |
 | POST   | `/api/auth/register`              | Create a student account (rate limited)             |
 | POST   | `/api/auth/login`                 | Email or student ID + password → access token       |
 | POST   | `/api/auth/refresh`               | httpOnly refresh cookie → new access token           |
@@ -74,7 +79,21 @@ revocation, bcrypt (12 rounds), 30 credential attempts / 15 min / IP.
 Orders: the cart lives client-side (localStorage, `bcpCart`); checkout sends the
 whole cart to the server, which prices it from the database, reserves the stock
 under row locks and stores line-item snapshots, so history survives catalogue
-edits. Payment happens in Phase 4 — orders start as `pending`.
+edits. Orders start as `pending` with `paymentMethod` set to `cash_on_pickup`
+(admin marks them paid manually) or `online` (PayMongo checkout → `paid`).
+
+Payments (Phase 4): `server/payments/` isolates the gateway behind a provider
+registry — set `PAYMONGO_SECRET_KEY` and the real PayMongo Hosted Checkout is
+used (`POST /v2/checkout_sessions`, success/cancel return URLs,
+`checkout_session.payment.paid` webhook); without keys the built-in sandbox
+serves an in-app test gateway at `/checkout/sandbox` so the whole flow stays
+testable offline. Webhook deliveries are verified against the raw request body
+(HMAC-SHA256, `t=…,v1=…` and bare-hex schemes both accepted, timing-safe
+compare), deduplicated on the event id in a ledger table, guarded against
+livemode mismatches, and settled through the same pipeline the sandbox uses.
+`PAYMONGO_WEBHOOK_SECRET` must hold the endpoint secret you register in the
+PayMongo dashboard; see `server/.env.example` for every knob. Note: cancelling
+a paid order restores stock but does not issue a refund (no refund flow yet).
 
 ## Status
 
@@ -83,7 +102,7 @@ Production plan phases:
 - [x] **Phase 1** — React port of the student app (home, body scan, catalog, themes) on top of the API
 - [x] **Phase 2** — Auth & roles: registration/login/refresh/logout, bcrypt, JWT, rate limiting, admin middleware, guarded routes, profile menu
 - [x] **Phase 3** — Catalogue in PostgreSQL, cart, checkout, order history, admin panel (inventory + order workflow)
-- [ ] Phase 4 — Payments
+- [x] **Phase 4** — Payments: cash on pickup or online via PayMongo Hosted Checkout (sandbox gateway fallback), signed webhooks, payment history in orders/admin
 - [ ] Phase 5 — Real photo-scan AI sizing (currently simulated)
 - [ ] Phase 6 — Test coverage, security hardening, performance
 - [ ] Phase 0/7 — Sequelize migrations (tables are created with `DB_SYNC` today), Docker/CI deployment

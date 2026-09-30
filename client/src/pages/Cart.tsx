@@ -4,6 +4,7 @@ import { ApiError, postOrder } from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { cartCount, cartTotal, useCartStore } from '../store/cart';
 import { showToast } from '../store/toast';
+import type { PaymentMethod } from '../types';
 
 export default function Cart() {
     const items = useCartStore((state) => state.items);
@@ -14,6 +15,7 @@ export default function Cart() {
     const navigate = useNavigate();
 
     const [placing, setPlacing] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_pickup');
     const count = cartCount(items);
     const subtotal = cartTotal(items);
 
@@ -31,11 +33,14 @@ export default function Cart() {
                     uniformId: item.uniformId,
                     sizeId: item.sizeId,
                     quantity: item.quantity
-                }))
+                })),
+                undefined,
+                paymentMethod
             );
             clear();
             showToast(`Order ${order.orderNumber} placed!`, 'success');
-            navigate('/orders');
+            // Online orders go straight to the payment page; cash orders to history.
+            navigate(paymentMethod === 'online' ? `/checkout/${order.id}` : '/orders');
         } catch (error) {
             if (error instanceof ApiError && error.status === 409) {
                 const detail = error.body?.conflicts
@@ -142,6 +147,50 @@ export default function Cart() {
                                         <span>Total</span>
                                         <span>₱{subtotal.toFixed(2)}</span>
                                     </div>
+
+                                    <div
+                                        className="payment-choice"
+                                        role="radiogroup"
+                                        aria-label="Payment method"
+                                    >
+                                        <label
+                                            className={`payment-option${
+                                                paymentMethod === 'cash_on_pickup' ? ' active' : ''
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="cash_on_pickup"
+                                                checked={paymentMethod === 'cash_on_pickup'}
+                                                onChange={() => setPaymentMethod('cash_on_pickup')}
+                                            />
+                                            <i className="fas fa-money-bill-wave"></i>
+                                            <span>
+                                                Cash at pickup
+                                                <small>Pay when you claim your order</small>
+                                            </span>
+                                        </label>
+                                        <label
+                                            className={`payment-option${
+                                                paymentMethod === 'online' ? ' active' : ''
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="online"
+                                                checked={paymentMethod === 'online'}
+                                                onChange={() => setPaymentMethod('online')}
+                                            />
+                                            <i className="fas fa-credit-card"></i>
+                                            <span>
+                                                Pay online now
+                                                <small>GCash, Maya, QR Ph or card</small>
+                                            </span>
+                                        </label>
+                                    </div>
+
                                     <button
                                         className="btn btn-primary btn-large"
                                         style={{ width: '100%' }}

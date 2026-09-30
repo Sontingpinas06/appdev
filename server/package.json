@@ -10,6 +10,7 @@
     "check:parity": "node scripts/check-sizing-parity.js",
     "check:auth": "node scripts/check-auth-gate.js",
     "check:orders": "node scripts/check-orders.js",
+    "check:payments": "node scripts/check-payments.js",
     "reset:stock": "node scripts/reset-stock.js"
   },
   "engines": {

@@ -33,6 +33,24 @@ if (isProduction && adminPassword === DEV_ADMIN_PASSWORD) {
     throw new Error('Refusing to start in production with the default ADMIN_PASSWORD');
 }
 
+// ---------------------------------------------------------------------------
+// Payments
+// ---------------------------------------------------------------------------
+const PAYMENT_PROVIDER = process.env.PAYMENT_PROVIDER || 'auto'; // auto | sandbox | paymongo
+if (!['auto', 'sandbox', 'paymongo'].includes(PAYMENT_PROVIDER)) {
+    throw new Error('PAYMENT_PROVIDER must be one of: auto, sandbox, paymongo');
+}
+
+const paymongoSecretKey = process.env.PAYMONGO_SECRET_KEY || '';
+
+if (PAYMENT_PROVIDER === 'paymongo' && !paymongoSecretKey) {
+    throw new Error('PAYMENT_PROVIDER=paymongo requires PAYMONGO_SECRET_KEY');
+}
+
+if (isProduction && PAYMENT_PROVIDER === 'sandbox' && !process.env.PAYMENT_WEBHOOK_SECRET) {
+    throw new Error('The sandbox provider in production requires an explicit PAYMENT_WEBHOOK_SECRET');
+}
+
 module.exports = {
     nodeEnv: NODE_ENV,
     isProduction,
@@ -74,5 +92,26 @@ module.exports = {
     },
 
     // Dev-only schema sync until Sequelize migrations land (Phase 0/7).
-    dbSync: (process.env.DB_SYNC ?? (!isProduction ? 'true' : 'false')) === 'true'
+    dbSync: (process.env.DB_SYNC ?? (!isProduction ? 'true' : 'false')) === 'true',
+
+    payments: {
+        // 'auto' uses PayMongo when a secret key is configured, sandbox otherwise.
+        provider: PAYMENT_PROVIDER,
+        paymongoSecretKey,
+        // Secret for the webhook endpoint registered in the PayMongo dashboard.
+        paymongoWebhookSecret: process.env.PAYMONGO_WEBHOOK_SECRET || '',
+        // Effective webhook signing secret: PayMongo's endpoint secret wins in
+        // production; the dev default lets tests sign synthetic events locally.
+        webhookSecret:
+            process.env.PAYMONGO_WEBHOOK_SECRET ||
+            process.env.PAYMENT_WEBHOOK_SECRET ||
+            (isProduction ? '' : 'uniguide-dev-sandbox-secret'),
+        // Hosted checkout methods (documented values: card, gcash, qrph).
+        methodTypes: (process.env.PAYMONGO_PAYMENT_METHOD_TYPES || 'card,gcash,qrph')
+            .split(',')
+            .map((method) => method.trim())
+            .filter(Boolean),
+        // Public origin used for hosted-checkout return URLs.
+        publicUrl: process.env.PUBLIC_URL || ''
+    }
 };

@@ -21,6 +21,36 @@ export function formatDate(value: string): string {
     });
 }
 
+/** Payment chip label/state for an order (shared with the admin table). */
+export function paymentSummary(order: Order): {
+    label: string;
+    className: string;
+    canPay: boolean;
+} {
+    if (order.paymentMethod !== 'online') {
+        return { label: 'Cash at pickup', className: 'payment-cash', canPay: false };
+    }
+
+    const status = order.payment?.status;
+    const method = order.payment?.method ? order.payment.method.toUpperCase() : null;
+    const payable = order.status === 'pending';
+
+    if (status === 'succeeded' || order.status === 'paid') {
+        return {
+            label: method ? `Paid · ${method}` : 'Paid online',
+            className: 'payment-paid',
+            canPay: false
+        };
+    }
+    if (status === 'failed' || status === 'expired') {
+        return { label: 'Payment failed', className: 'payment-failed', canPay: payable };
+    }
+    if (status === 'cancelled') {
+        return { label: 'Payment cancelled', className: 'payment-failed', canPay: payable };
+    }
+    return { label: 'Payment pending', className: 'payment-pending', canPay: payable };
+}
+
 export default function Orders() {
     const [orders, setOrders] = useState<Order[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -83,6 +113,7 @@ export default function Orders() {
                     <div className="order-list">
                         {orders.map((order) => {
                             const status = STATUS_LABELS[order.status];
+                            const payment = paymentSummary(order);
                             return (
                                 <div className="order-card" key={order.id}>
                                     <div className="order-card-header">
@@ -115,6 +146,17 @@ export default function Orders() {
 
                                     <div className="order-card-footer">
                                         {order.notes && <span className="order-notes">{order.notes}</span>}
+                                        <span className={`payment-chip ${payment.className}`}>
+                                            <i className="fas fa-credit-card"></i> {payment.label}
+                                        </span>
+                                        {payment.canPay && (
+                                            <Link
+                                                to={`/checkout/${order.id}`}
+                                                className="btn btn-primary btn-small pay-now"
+                                            >
+                                                <i className="fas fa-lock"></i> Pay now
+                                            </Link>
+                                        )}
                                         <strong>Total: ₱{order.totalAmount.toFixed(2)}</strong>
                                     </div>
                                 </div>

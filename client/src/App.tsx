@@ -7,6 +7,9 @@ import Toast from './components/Toast';
 import Admin from './pages/Admin';
 import Cart from './pages/Cart';
 import Catalog from './pages/Catalog';
+import Checkout from './pages/Checkout';
+import CheckoutResult from './pages/CheckoutResult';
+import CheckoutSandbox from './pages/CheckoutSandbox';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Orders from './pages/Orders';
@@ -47,6 +50,30 @@ export default function App() {
                     <Route path="/sizing" element={<Sizing />} />
                     <Route path="/catalog" element={<Catalog />} />
                     <Route path="/cart" element={<Cart />} />
+                    <Route
+                        path="/checkout/:orderId"
+                        element={
+                            <ProtectedRoute>
+                                <Checkout />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/checkout/sandbox"
+                        element={
+                            <ProtectedRoute>
+                                <CheckoutSandbox />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/checkout/result"
+                        element={
+                            <ProtectedRoute>
+                                <CheckoutResult />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="/orders"
                         element={

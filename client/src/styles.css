@@ -2648,3 +2648,294 @@ button.size-option {
 .method-btn.active span {
     color: #1e293b;
 }
+
+/* ===========================================================================
+ * PHASE 4 - Payments (PayMongo / sandbox)
+ * ======================================================================== */
+
+/* Payment method choice in the cart summary */
+.payment-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 1.25rem 0;
+}
+
+.payment-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.payment-option:hover {
+    border-color: var(--primary-color);
+}
+
+.payment-option.active {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.payment-option input {
+    accent-color: var(--primary-color);
+}
+
+.payment-option i {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.payment-option span {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+}
+
+.payment-option small {
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.checkout-note {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.75rem 0 1.25rem;
+}
+
+.form-error {
+    color: var(--danger-color);
+    font-size: 0.9rem;
+    margin: 0.5rem 0 1rem;
+}
+
+/* Payment chip: used in order cards and the admin table */
+.payment-chip {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    background: var(--bg-secondary, #f1f5f9);
+    color: #334155;
+}
+
+.payment-chip.payment-cash {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.payment-chip.payment-paid {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.payment-chip.payment-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.payment-chip.payment-failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.pay-now {
+    text-decoration: none;
+}
+
+/* Sandbox gateway panel */
+.sandbox-panel {
+    max-width: 560px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+}
+
+.sandbox-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #f8fafc;
+}
+
+.sandbox-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.sandbox-brand strong {
+    background: #f59e0b;
+    color: #1e293b;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+}
+
+.sandbox-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.15);
+    border: 1px solid rgba(248, 250, 252, 0.35);
+}
+
+.sandbox-body {
+    padding: 1.5rem;
+    color: var(--text-primary);
+}
+
+.sandbox-order {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+}
+
+.sandbox-order > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sandbox-order span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sandbox-order .sandbox-amount strong {
+    font-size: 1.4rem;
+    color: var(--primary-color);
+}
+
+.sandbox-methods-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: var(--text-secondary);
+}
+
+.sandbox-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.sandbox-method {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+}
+
+.sandbox-method:hover {
+    border-color: var(--primary-color);
+}
+
+.sandbox-method.active {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.sandbox-method input {
+    accent-color: var(--primary-color);
+}
+
+.sandbox-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.sandbox-disclaimer {
+    margin-top: 1.25rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* Result screens (success / pending / failure) */
+.checkout-result {
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+}
+
+.checkout-result h2 {
+    margin: 1rem 0 0.5rem;
+}
+
+.checkout-result p {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.result-icon {
+    font-size: 3.5rem;
+}
+
+.result-icon.success {
+    color: var(--success-color);
+}
+
+.result-icon.failure {
+    color: var(--danger-color);
+}
+
+.result-icon.pending {
+    color: #f59e0b;
+}
+
+.result-spinner {
+    font-size: 3rem;
+    color: var(--primary-color);
+}
+
+.result-muted {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.result-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}

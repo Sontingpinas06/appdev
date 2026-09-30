@@ -38,6 +38,12 @@ module.exports = (sequelize) => {
                 defaultValue: 'pending'
             },
             totalAmount: money('totalAmount'),
+            // 'cash_on_pickup' (default) or 'online' (PayMongo checkout).
+            paymentMethod: {
+                type: DataTypes.STRING,
+                allowNull: false,
+                defaultValue: 'cash_on_pickup'
+            },
             notes: {
                 type: DataTypes.TEXT,
                 allowNull: true

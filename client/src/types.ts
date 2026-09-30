@@ -88,6 +88,27 @@ export interface CartItem {
 
 export type OrderStatus = 'pending' | 'paid' | 'ready' | 'completed' | 'cancelled';
 
+export type PaymentMethod = 'cash_on_pickup' | 'online';
+
+/** How the gateway settled (or will settle) an online payment. */
+export type GatewayMethod = 'card' | 'gcash' | 'paymaya' | 'maya' | 'qrph';
+
+export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'cancelled' | 'expired';
+
+export interface Payment {
+    id: string;
+    orderId: string;
+    /** 'sandbox' (in-app test gateway) or 'paymongo'. */
+    provider: string;
+    status: PaymentStatus;
+    /** Gateway method once settled: card, gcash, paymaya, qrph, ... */
+    method?: string | null;
+    amount: number;
+    failureReason?: string | null;
+    paidAt?: string | null;
+    createdAt: string;
+}
+
 export interface OrderItem {
     id: number;
     uniformId: number;
@@ -105,6 +126,9 @@ export interface Order {
     orderNumber: string;
     status: OrderStatus;
     totalAmount: number;
+    paymentMethod: PaymentMethod;
+    /** Latest checkout attempt, when one exists. */
+    payment?: Payment | null;
     notes?: string | null;
     createdAt: string;
     items: OrderItem[];

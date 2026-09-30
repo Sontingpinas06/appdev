@@ -1,5 +1,5 @@
 /**
- * Smoke test for the React app (Phases 1-3).
+ * Smoke test for the React app (Phases 1-4).
  * Drives the real app with the system Chrome install (no bundled browser).
  *
  *   npm run smoke
@@ -194,6 +194,48 @@ try {
     check('checkout: order number formatted', /BCP-\d{6}-/.test(orderNumber), orderNumber.trim());
     await page.screenshot({ path: join(shots, 'orders-page.png') });
 
+    // --- Online payment via the sandbox gateway ----------------------------
+    await page.goto(`${BASE}/catalog`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.catalog-item');
+    await page.click('.catalog-item .item-actions button');
+    await page.waitForSelector('.modal .size-selector');
+    await page.click('.modal .size-option:not([disabled])');
+    await page.click('.modal .item-actions .btn-primary'); // Add to Cart
+
+    await page.goto(`${BASE}/cart`, { waitUntil: 'networkidle' });
+    await page.click('.payment-option:nth-child(2)'); // Pay online now
+    const onlineChosen = await page.$eval(
+        '.payment-option:nth-child(2) input',
+        (el) => el.checked
+    );
+    check('payment: online method selectable in cart', onlineChosen);
+
+    await page.click('.summary-card .btn-primary'); // Place Order
+    await page.waitForURL('**/checkout/**', { timeout: 10000 });
+    check('payment: online order lands on the payment page', /\/checkout\//.test(page.url()), page.url());
+    await page.waitForSelector('.summary-card .btn-primary:not([disabled])', { timeout: 10000 });
+    await page.screenshot({ path: join(shots, 'checkout-page.png') });
+
+    await page.click('.summary-card .btn-primary'); // Continue to payment
+    await page.waitForURL('**/checkout/sandbox**', { timeout: 10000 });
+    await page.waitForSelector('.sandbox-panel');
+    check('payment: sandbox gateway renders', await page.isVisible('.sandbox-badge'), page.url());
+    await page.screenshot({ path: join(shots, 'sandbox-gateway.png') });
+
+    await page.click('.sandbox-actions .btn-primary'); // Simulate successful payment
+    await page.waitForURL('**/checkout/result**', { timeout: 10000 });
+    const settled = await page
+        .waitForSelector('.result-icon.success', { timeout: 20000 })
+        .then(() => true)
+        .catch(() => false);
+    check('payment: success screen after approval', settled, page.url());
+    await page.screenshot({ path: join(shots, 'payment-success.png') });
+
+    await page.goto(`${BASE}/orders`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.order-card');
+    const paidChip = await page.locator('.order-card').first().locator('.payment-chip').textContent();
+    check('payment: history shows the paid chip', /paid/i.test(paidChip || ''), String(paidChip));
+
     // --- Admin: inventory + order workflow ---------------------------------
     // Log out of the student account, then in as the seeded admin.
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
@@ -252,23 +294,44 @@ try {
     await page.click('.method-selector .method-btn:nth-child(2)'); // Orders tab
     await page.waitForSelector('.status-select');
     await page.screenshot({ path: join(shots, 'admin-orders.png') });
-    const statusSelect = page.locator('.status-select').first();
-    await statusSelect.selectOption('paid');
+
+    // Newest first: row 1 is this run's online order, row 2 the cash order.
+    const paymentCells = await page.$$eval('.admin-table .payment-chip', (els) =>
+        els.map((el) => el.textContent)
+    );
+    check(
+        'admin: payment column shows method and status',
+        /paid/i.test(paymentCells[0] || '') && /cash/i.test(paymentCells[1] || ''),
+        JSON.stringify(paymentCells.slice(0, 2))
+    );
+
+    const cashSelect = page.locator('.status-select').nth(1);
+    await cashSelect.selectOption('paid');
     await page.waitForFunction(
-        () => document.querySelector('.status-select')?.value === 'paid',
+        () => document.querySelectorAll('.status-select')[1]?.value === 'paid',
         undefined,
         { timeout: 10000 }
     );
     check('admin: order status moves to paid', true);
 
-    // Cancel it again so this run gives the stock back.
-    await statusSelect.selectOption('cancelled');
+    // Cancel both of this run's orders so the smoke stays stock-neutral:
+    // the cash order first, then the gateway-paid one.
+    await cashSelect.selectOption('cancelled');
+    await page.waitForFunction(
+        () => document.querySelectorAll('.status-select')[1]?.value === 'cancelled',
+        undefined,
+        { timeout: 10000 }
+    );
+    check('admin: cancelling restores the order state', true);
+
+    const onlineSelect = page.locator('.status-select').first();
+    await onlineSelect.selectOption('cancelled');
     await page.waitForFunction(
         () => document.querySelector('.status-select')?.value === 'cancelled',
         undefined,
         { timeout: 10000 }
     );
-    check('admin: cancelling restores the order state', true);
+    check('admin: online order cancels cleanly too', true);
 
     // --- Responsive navigation -------------------------------------------
     await page.setViewportSize({ width: 390, height: 844 });
