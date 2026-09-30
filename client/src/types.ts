@@ -52,3 +52,17 @@ export interface RecommendationResponse {
     measurements: Measurements;
     recommendations: Recommendation[];
 }
+
+export interface AuthUser {
+    id: string;
+    name: string;
+    email: string;
+    studentId?: string | null;
+    gender: Gender;
+    role: 'student' | 'admin';
+    height?: number | null;
+    weight?: number | null;
+    chest?: number | null;
+    waist?: number | null;
+    createdAt?: string;
+}

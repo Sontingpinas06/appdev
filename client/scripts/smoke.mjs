@@ -1,5 +1,5 @@
 /**
- * Smoke test for the Phase 1 React port.
+ * Smoke test for the React app (Phases 1-2).
  * Drives the real app with the system Chrome install (no bundled browser).
  *
  *   npm run smoke
@@ -16,9 +16,11 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 
 const errors = [];
+// A 401 from POST /auth/refresh is the normal "no session to restore" path.
+const EXPECTED_401 = /status of 401/;
 page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
 page.on('console', (msg) => {
-    if (msg.type() === 'error') {
+    if (msg.type() === 'error' && !EXPECTED_401.test(msg.text())) {
         errors.push(`console: ${msg.text()} @ ${msg.location().url || 'unknown'}`);
     }
 });
@@ -102,6 +104,67 @@ try {
     check('theme: indicator on selected theme', indicator === 'Dark Mode', String(indicator));
     await page.screenshot({ path: join(shots, 'theme-dark.png') });
     await page.click('.modal .close');
+
+    // --- Auth: route guard, registration, session, logout, login ----------
+    await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
+    await page.waitForURL('**/login');
+    check('auth: signed-out /admin redirects to /login', page.url().endsWith('/login'), page.url());
+
+    const stamp = Date.now();
+    const account = {
+        name: `Smoke Student ${stamp}`,
+        email: `smoke.${stamp}@bcp.edu.ph`,
+        password: 'Passw0rd!1'
+    };
+
+    await page.click('.method-selector .method-btn:nth-child(2)'); // Create Account
+    await page.fill('#regName', account.name);
+    await page.fill('#regEmail', account.email);
+    await page.fill('#regStudentId', `2024-${String(stamp).slice(-5)}`);
+    await page.selectOption('#regGender', 'Male');
+    await page.fill('#regPassword', account.password);
+    await page.fill('#regConfirm', account.password);
+    await page.click('.measurement-form.active button[type="submit"]');
+    await page.waitForSelector('#userProfile', { timeout: 5000 });
+
+    const navName = await page.$eval('#userProfile .profile-button span', (el) => el.textContent);
+    check('auth: registration signs the user in', navName === account.name.split(' ')[0], String(navName));
+
+    // Registered from /admin, so the student lands on the 403 screen there.
+    const adminBlocked = await page.locator('h2', { hasText: 'Admin access required' }).count();
+    check('auth: student is refused the admin panel', adminBlocked > 0, page.url());
+
+    // Session must survive a reload (httpOnly refresh cookie -> new access token).
+    await page.reload({ waitUntil: 'networkidle' });
+    const restored = await page
+        .waitForSelector('#userProfile', { timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+    check('auth: session restored after reload', restored);
+
+    // Logout
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.click('#userProfile .profile-button');
+    await page.waitForSelector('.profile-dropdown.active');
+    await page.click('.profile-dropdown .dropdown-item.danger');
+    await page.waitForSelector('.modal-actions');
+    await page.click('.modal-actions .btn-danger');
+    const signedOut = await page
+        .waitForSelector('#authButtons', { timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+    check('auth: logout returns to the signed-out navbar', signedOut);
+
+    // Login again
+    await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+    await page.fill('#identifier', account.email);
+    await page.fill('#loginPassword', account.password);
+    await page.click('.measurement-form.active button[type="submit"]');
+    const signedIn = await page
+        .waitForSelector('#userProfile', { timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+    check('auth: login restores the session', signedIn);
 
     // --- Responsive navigation -------------------------------------------
     await page.setViewportSize({ width: 390, height: 844 });

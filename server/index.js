@@ -2,41 +2,102 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-require('dotenv').config();
+const cookieParser = require('cookie-parser');
 
+const env = require('./config/env');
+const { sequelize, User } = require('./models');
 const uniformRoutes = require('./routes/uniformRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Middleware
-const clientOrigins = (process.env.CLIENT_ORIGINS || '')
-    .split(',')
-    .map(origin => origin.trim())
-    .filter(Boolean);
-
-app.use(helmet()); // Security headers
-app.use(cors({
-    origin: clientOrigins.length ? clientOrigins : true, // Restrict to known clients when configured
-    credentials: true
-}));
-app.use(express.json({ limit: '100kb' })); // Body parser
-app.use(morgan('dev')); // Logging
+app.use(helmet());
+app.use(
+    cors({
+        origin: env.clientOrigins.length ? env.clientOrigins : true,
+        credentials: true
+    })
+);
+app.use(express.json({ limit: '100kb' }));
+app.use(cookieParser());
+app.use(morgan('dev'));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/uniforms', uniformRoutes);
 
-// Basic health check
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Something went wrong!', error: err.message });
+// 404
+app.use((req, res) => {
+    res.status(404).json({ message: 'Not found' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Error handling middleware
+app.use((err, req, res, next) => {
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ message: 'Malformed JSON body' });
+    }
+    if (err.type === 'entity.too.large') {
+        return res.status(413).json({ message: 'Payload too large' });
+    }
+
+    console.error(err);
+    res.status(err.status || 500).json({
+        message: 'Something went wrong!',
+        ...(env.isProduction ? {} : { error: err.message })
+    });
 });
+
+/** Idempotent admin bootstrap from ADMIN_* env vars. Never overwrites a password. */
+async function seedAdmin() {
+    if (!env.admin.password) {
+        if (env.isProduction) console.warn('ADMIN_PASSWORD not set - no admin account seeded');
+        return;
+    }
+
+    const email = env.admin.email.toLowerCase();
+    const [user, created] = await User.findOrCreate({
+        where: { email },
+        defaults: {
+            name: env.admin.name,
+            email,
+            password: env.admin.password,
+            gender: 'Unisex',
+            role: 'admin'
+        }
+    });
+
+    if (user.role !== 'admin') {
+        user.role = 'admin';
+        await user.save();
+    }
+
+    console.log(`Admin account ready: ${email}${created ? ' (seeded)' : ''}`);
+}
+
+async function start() {
+    try {
+        await sequelize.authenticate();
+        console.log(`Database connected (${sequelize.getDialect()})`);
+
+        if (env.dbSync) {
+            await sequelize.sync();
+            console.log('Schema synced (DB_SYNC=true - replace with migrations before production)');
+        }
+
+        await seedAdmin();
+
+        app.listen(env.port, () => {
+            console.log(`Server running on port ${env.port}`);
+        });
+    } catch (error) {
+        console.error(`Failed to start server: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+start();
