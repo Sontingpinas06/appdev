@@ -161,6 +161,64 @@ One instance on purpose — rate-limit counters are in-process. **CI**: every pu
 runs `.github/workflows/ci.yml` — typecheck, client build, all seven server gates
 against a Postgres service, then the Playwright smoke test.
 
+## PWA (Phase 9)
+
+The app is installable and works offline for the catalogue and order history.
+
+### Offline scope
+- **Cached (NetworkFirst, stale-while-revalidate)**:
+  - `GET /api/uniforms*` — catalogue (7-day expiry)
+  - `GET /api/orders*` — order history (30-day expiry)
+- **Network-only** (never cached): all other `/api/*` routes (auth, checkout, payments, scan, admin)
+- **Shell + static assets**: precached via Workbox; SPA shell navigates offline
+
+The service worker uses `navigateFallback` for non-`/api` routes so the SPA shell
+loads offline. `/api` routes are denylisted — the app will show the offline
+banner instead of a broken shell.
+
+### Service worker
+- `vite-plugin-pwa` (Vite 5 compatible) generates `sw.js` at build time
+- `registerType: 'autoUpdate'` — SW updates in background, `skipWaiting` +
+  `clientsClaim` so new versions take effect immediately
+- `sw.js` is served with `Cache-Control: no-cache, no-store, must-revalidate`
+  (server/index.js) so updates are never stale
+- Runtime caches: `uniforms-cache` (100 entries, 7 days), `orders-cache` (200
+  entries, 30 days)
+
+### Offline UX
+- Thin top banner appears when `navigator.onLine` flips to false or a heartbeat
+  `/health` HEAD fails (30 s interval)
+- Banner is dismissible; changes made offline sync when connectivity returns
+- Order-history runtime cache is cleared on logout / user switch (`clearUserCaches`)
+
+### Icons & manifest
+- SVG source → sharp → 72–512 px PNGs + maskable (192/512) + 180 px Apple touch
+- `client/public/manifest.json` (display: standalone, theme_color per preset)
+- `viewport-fit=cover` + `theme-color` meta for safe-area in standalone mode
+
+### Self-hosted Font Awesome
+- `@fortawesome/fontawesome-free` npm package; imported in `src/main.tsx`
+- No CDN dependency; works fully offline once installed
+
+### CI gate
+`node scripts/check-pwa.mjs` runs after the client build in CI and validates:
+- manifest.json required fields + all declared icons exist on disk
+- `sw.js` generated and contains Workbox
+- index.html imports the virtual register-sw module
+
+### Testing offline locally
+```bash
+# Build
+npm run build --prefix client
+
+# Serve production build (API on :5000, SPA on :4173 via vite preview)
+npm run preview --prefix client
+# In browser DevTools → Application → Service Workers → check "Offline"
+# Reload — catalogue and orders still render; checkout/auth show offline banner.
+```
+
+---
+
 ## Status
 
 Production plan phases:

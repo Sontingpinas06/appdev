@@ -69,6 +69,11 @@ app.get('/health', (req, res) => {
 // Local dev runs Vite on :5173, so this only kicks in after a build.
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 if (fs.existsSync(path.join(clientDist, 'index.html'))) {
+    // Service worker MUST NOT be cached; otherwise updates stall.
+    app.get('/sw.js', (req, res) => {
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.sendFile(path.join(clientDist, 'sw.js'));
+    });
     app.use(express.static(clientDist));
     // SPA fallback for app routes; /api falls through to the JSON 404 below.
     app.get(/^\/(?!api\/).*/, (req, res) => {

@@ -1853,6 +1853,56 @@ input:disabled, select:disabled {
     background: var(--danger-color);
 }
 
+.toast.warning {
+    background: var(--warning-color);
+}
+
+/* Offline Banner */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--warning-color);
+    color: var(--on-warning);
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    z-index: var(--z-toast);
+    font-size: var(--font-sm);
+    font-weight: 500;
+    animation: slideDown 0.25s ease-out;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--warning-color) 30%, transparent);
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.offline-banner i:first-child {
+    font-size: 1.1rem;
+}
+
+.offline-banner-dismiss {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.offline-banner-dismiss:hover {
+    background: color-mix(in srgb, currentColor 15%, transparent);
+}
+
 /* Theme Selector */
 .theme-selector-grid {
     display: grid;

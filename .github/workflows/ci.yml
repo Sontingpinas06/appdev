@@ -52,6 +52,10 @@ jobs:
           npx tsc --noEmit
           npm run build
 
+      - name: PWA validation
+        working-directory: client
+        run: node scripts/check-pwa.mjs
+
       - name: Start the API
         working-directory: server
         run: |

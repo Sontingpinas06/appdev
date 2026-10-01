@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { OfflineBanner } from './components/OfflineBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import ThemeModal from './components/ThemeModal';
 import Toast from './components/Toast';
@@ -48,6 +49,7 @@ export default function App() {
                 Skip to content
             </a>
             <Navbar />
+            <OfflineBanner />
             <main className="main-content" id="main-content" tabIndex={-1}>
                 <Routes>
                     <Route path="/" element={<Home />} />

@@ -36,6 +36,20 @@ function messageOf(error: unknown): string {
     return error instanceof Error ? error.message : 'Something went wrong';
 }
 
+/** Clear PWA runtime caches that store user-specific data (orders, uniforms). */
+async function clearUserCaches() {
+    if (!('caches' in window)) return;
+    const names = ['orders-cache', 'uniforms-cache'];
+    for (const name of names) {
+        try {
+            const cache = await caches.open(name);
+            await cache.keys().then((keys) => Promise.all(keys.map((req) => cache.delete(req))));
+        } catch {
+            // Cache might not exist yet; ignore.
+        }
+    }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     status: 'loading',
@@ -72,6 +86,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } catch {
             // Clear the local session regardless.
         }
+        // Clear PWA runtime caches that hold user-specific data.
+        await clearUserCaches();
         setAccessToken(null);
         set({ user: null, status: 'ready' });
         showToast('Logged out successfully', 'success');
