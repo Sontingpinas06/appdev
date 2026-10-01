@@ -2,6 +2,11 @@
 
 AI body-scan sizing, live stock and transparent pricing for BCP school uniforms.
 
+**Live URLs:**
+- **Production**: https://uniguide.bcp.edu.ph
+- **Staging**: https://staging.uniguide.bcp.edu.ph
+- **API**: https://api.uniguide.bcp.edu.ph
+
 The app is being moved from a static prototype to a production architecture:
 
 ```
