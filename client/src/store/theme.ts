@@ -12,14 +12,14 @@ export const themePresets = {
         bg: '#f8fafc',
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
-        textSecondary: '#64748b',
+        textSecondary: '#5b6473',
         border: '#e2e8f0',
         // Ink on primary fills: white passes AA on #2563eb.
         onPrimary: '#ffffff'
     },
     dark: {
-        primary: '#3b82f6',
-        primaryDark: '#2563eb',
+        primary: '#60a5fa',
+        primaryDark: '#3b82f6',
         secondary: '#64748b',
         success: '#10b981',
         danger: '#ef4444',
@@ -27,9 +27,9 @@ export const themePresets = {
         bg: '#0f172a',
         cardBg: '#1e293b',
         textPrimary: '#f1f5f9',
-        textSecondary: '#94a3b8',
+        textSecondary: '#a3b1c4',
         border: '#334155',
-        // White reaches only 3.7:1 on #3b82f6; near-black ink reaches ~5:1.
+        // Near-black ink reaches ~5:1 on both #60a5fa and #3b82f6.
         onPrimary: '#0b1220'
     },
     green: {
@@ -42,7 +42,7 @@ export const themePresets = {
         bg: '#f0fdf4',
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
-        textSecondary: '#64748b',
+        textSecondary: '#5b6473',
         border: '#bbf7d0',
         onPrimary: '#042f1e'
     },
@@ -56,7 +56,7 @@ export const themePresets = {
         bg: '#faf5ff',
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
-        textSecondary: '#64748b',
+        textSecondary: '#5b6473',
         border: '#e9d5ff',
         onPrimary: '#ffffff'
     },
@@ -70,7 +70,7 @@ export const themePresets = {
         bg: '#fef2f2',
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
-        textSecondary: '#64748b',
+        textSecondary: '#5b6473',
         border: '#fecaca',
         onPrimary: '#2c0707'
     },
@@ -84,7 +84,7 @@ export const themePresets = {
         bg: '#fffbeb',
         cardBg: '#ffffff',
         textPrimary: '#1e293b',
-        textSecondary: '#64748b',
+        textSecondary: '#5b6473',
         border: '#fed7aa',
         onPrimary: '#431407'
     }
@@ -114,7 +114,7 @@ function applyTheme(theme: Theme): void {
     // Derived surfaces recompute from the new card/primary values.
     root.style.setProperty(
         '--backdrop-tint',
-        `color-mix(in srgb, ${theme.primary} 12%, ${theme.bg})`
+        `color-mix(in srgb, ${theme.primary} 8%, ${theme.bg})`
     );
     // Standalone PWA status bar follows the active theme.
     const meta = document.querySelector('meta[name="theme-color"]');

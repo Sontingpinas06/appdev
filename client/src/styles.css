@@ -78,9 +78,20 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     position: relative;
+    /* The parked mobile drawer sits outside the viewport and Chrome counts it
+       (and its transform) toward scroll width, which let phones swipe ~300px
+       sideways into the empty gutter. `clip` cuts that without turning body
+       into a scroll container - `hidden` here would break the sticky navbar. */
+    overflow-x: clip;
     /* iPhone notch/home-indicator safe areas (PWA standalone) */
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+}
+
+/* Both elements need the clip: Chrome propagates only one of them to the
+   viewport, and body alone left the sideways swipe working (measured). */
+html {
+    overflow-x: clip;
 }
 
 body::before {
@@ -1958,11 +1969,14 @@ input:disabled, select:disabled {
         display: none;
     }
     
-    /* Mobile Sidebar Menu */
+    /* Mobile Sidebar Menu.
+       Parked with transform, not a negative `right`: an off-canvas fixed panel
+       still counts toward the document's scroll width in Chrome, which let the
+       whole page swipe ~300px sideways on phones. translateX doesn't. */
     .nav-menu {
         position: fixed;
         top: 0;
-        right: -320px;
+        right: 0;
         width: 300px;
         height: 100vh;
         background: var(--card-bg);
@@ -1972,13 +1986,19 @@ input:disabled, select:disabled {
         flex-direction: column;
         gap: 0;
         padding: 0;
-        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateX(100%);
+        /* visibility keeps the parked panel out of the tab order; it stays
+           visible for the whole slide because visibility transitions hold
+           their "visible" endpoint until the animation ends. */
+        visibility: hidden;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
         overflow-y: auto;
         border-left: 1px solid var(--border-color);
     }
     
     .nav-menu.active {
-        right: 0;
+        transform: translateX(0);
+        visibility: visible;
     }
     
     /* Mobile Menu Header */
@@ -2292,10 +2312,11 @@ input:disabled, select:disabled {
         font-size: 1rem;
     }
     
-    /* Adjust mobile menu for smaller screens */
+    /* Adjust mobile menu for smaller screens. Parked position now comes from
+       the translateX in the rule above - do not add `right` back here, it
+       stacks with the transform and pushes the panel further off-canvas. */
     .nav-menu {
         width: 280px;
-        right: -300px;
     }
     
     .mobile-menu-header {
@@ -3086,13 +3107,13 @@ button.size-option {
 }
 
 .btn-ghost {
-    background: color-mix(in srgb, var(--on-primary) 16%, transparent);
+    background: color-mix(in srgb, var(--on-primary) 7%, transparent);
     color: var(--on-primary);
     border: 2px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
 }
 
 .btn-ghost:hover {
-    background: color-mix(in srgb, var(--on-primary) 26%, transparent);
+    background: color-mix(in srgb, var(--on-primary) 14%, transparent);
     transform: translateY(-3px);
 }
 
@@ -3103,7 +3124,10 @@ button.size-option {
     gap: 0.5rem;
     padding: 0.45rem 1rem;
     border-radius: var(--radius-pill);
-    background: var(--tint-primary);
+    /* Opaque tint over card-bg (not transparent over page gradient) so the
+       badge reads the same in every theme. With var(--primary-color) text
+       this passes AA in both default (4.49:1) and dark (4.86:1). */
+    background: color-mix(in srgb, var(--primary-color) 10%, var(--card-bg));
     color: var(--primary-color);
     font-size: var(--font-sm);
     font-weight: 700;
@@ -3320,7 +3344,7 @@ button.size-option {
 }
 
 .cta-band p {
-    color: color-mix(in srgb, var(--on-primary) 85%, transparent);
+    color: color-mix(in srgb, var(--on-primary) 92%, transparent);
     max-width: 560px;
     margin: 0 auto;
     position: relative;
